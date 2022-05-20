@@ -7,6 +7,8 @@
 #include<sys/socket.h>
 #include<sys/epoll.h>
 #include<string.h>
+#include<errno.h>
+
 
 #include"locker.h"
 
@@ -59,31 +61,12 @@ private:
     int m_sockfd;
     char m_read_buf[READ_BUFFER_SIZE];   //存储读取的请求报文数据
     char m_real_file[FILENAME_LEN];      //读取文件的名称
-    int m_read_idx;                      //m_read_buf中数据的最后一个字节的下一个位置;
+    int m_read_idx;                      // m_read_buf中数据的最后一个字节的下一个位置
     int m_start_line;                    // m_read_buf已经解析的字符的个数
 
     char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
     int m_write_idx;                     //写缓冲区的位置
-
     METHDO m_method; //请求方法
 };
-
-//循环读取客户数据 读取到m_read_buf中并更新m_read_idx 直到无数据可读或对方关闭连接 
-bool http_conn::read_once()
-{
-    if(m_read_idx>=READ_BUFFER_SIZE)
-    {
-        return false;
-    }
-    int bytes_read = 0;
-    while(true)
-    {
-        bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
-        if(bytes_read==-1)
-        {
-            
-        }
-    }
-}
 
 #endif
