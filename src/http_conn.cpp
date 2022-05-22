@@ -75,3 +75,58 @@ void modfd(int epollfd,int fd,int ev,int TRIGMode)
     //EPOLL_CTL_MOD更改注册的文件描述符的关注事件发生情况
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
 }
+
+//各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
+void http_conn::process()
+{
+    HTTP_CODE read_ret = process_read();
+    if(read_ret==NO_REQUEST)
+    {
+        //modfd(m_epollfd, m_sockfd, EPOLLIN);注册读事件
+        return;
+    }
+
+    bool write_ret = process_write(read_ret);
+    if(!write_ret)
+    {
+        close_conn();
+    }
+    //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
+}
+
+//从状态机解析一行数据 
+//返回值为行的读取状态，有LINE_OK,LINE_BAD,LINE_OPEN
+http_conn::LINE_STATE http_conn::parse_line()
+{
+    char temp;
+    for (; m_checked_idx < m_read_idx;++m_checked_idx)
+    {
+        temp = m_read_buf[m_checked_idx];
+        if(temp=='\r')
+        {
+            if (m_checked_idx + 1 == m_read_idx) //是否到达了末尾
+                return LINE_OPEN;
+            else if(m_read_buf[m_checked_idx+1]=='\n')
+            {
+                m_read_buf[m_checked_idx++] = '\0';
+                m_read_buf[m_checked_idx++] = '\0';
+                //checked_idx要移动到下一个位置
+                return LINE_OK;
+            }
+            return LINE_BAD;
+        }
+        else if (temp == '\n')
+        {
+            //【要+大于1】
+            if(m_checked_idx>1 && m_read_buf[m_checked_idx-1]=='\r')
+            {
+                m_read_buf[m_checked_idx++] = '\0';
+                m_read_buf[m_checked_idx++] = '\0';
+                return LINE_OK;
+            }
+            return LINE_BAD;
+        }
+    }
+    //遍历完了没有找到\r \n 需要继续接收
+    return LINE_OPEN;
+}
