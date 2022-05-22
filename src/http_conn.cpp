@@ -130,3 +130,22 @@ http_conn::LINE_STATE http_conn::parse_line()
     //遍历完了没有找到\r \n 需要继续接收
     return LINE_OPEN;
 }
+
+//主状态机逻辑 解析请求行，获得请求方法，目标url及http版本号
+http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
+{
+    m_url = strpbrk(text, "\t");
+    if(!m_url)
+        return BAD_REQUEST;
+    *m_url++ = '\0';
+    char *method = text;
+    if(strcasecmp(method,"GET")==0)
+        m_method = GET;
+    else if(method,"POST"==0)
+    {
+        m_method = POST;
+        // cgi=1;
+    }
+    else
+        return BAD_REQUEST;
+}

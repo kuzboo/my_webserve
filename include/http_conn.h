@@ -68,7 +68,7 @@ private:
     HTTP_CODE parsr_headers(char *text);      //主状态机解析 头数据
     HTTP_CODE parser_content(char *text);     //主状态机解析 内容
     LINE_STATE parse_line();                  //从状态机解析一行数据 分析是报文的那一部分
-
+    char *get_line();                         // get_line用于将指针向后偏移，指向未处理的字符
 private:
     int m_sockfd;
     char m_read_buf[READ_BUFFER_SIZE];   //存储读取的请求报文数据
@@ -76,10 +76,18 @@ private:
     int m_checked_idx;                   // m_read_buf中读取的位置
     int m_read_idx;                      // m_read_buf中数据的最后一个字节的下一个位置
     int m_start_line;                    // m_read_buf已经解析的字符的个数
-
+                                            
     char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
     int m_write_idx;                     //写缓冲区的位置
     METHDO m_method; //请求方法
+
+    //请求报文中对应的变量
+    char m_real_file[FILENAME_LEN];//存储读取文件的名称
+    char *m_url;
+    char *m_vesrion;
+    char *m_host;
+    int m_content_length;
+    bool m_linger;
 };
 
 #endif
