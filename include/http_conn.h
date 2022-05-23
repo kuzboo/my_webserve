@@ -3,6 +3,7 @@
 
 #include<unistd.h>
 #include<stdio.h>
+#include<stdlib.h>
 #include<fcntl.h>
 #include<sys/socket.h>
 #include<sys/epoll.h>
@@ -40,7 +41,7 @@ public:
         NO_REQUEST = 0, //表示请求不完整，需要继续接收请求数据
         GET_REQUEST,    //获得了完整的HTTP请求
         BAD_REQUEST,    // HTTP请求报文有语法错误
-        NO_RESOURCE,    //
+        NO_RESOURCE,    //请求不完整需要继续获取请求
         FORBIDDEN_REQUEST,
         FILE_REQUEST,
         INTERNAL_ERROR //服务器内部错误 该结果在主状态机逻辑switch的default下，一般不会触发;
@@ -79,7 +80,8 @@ private:
                                             
     char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
     int m_write_idx;                     //写缓冲区的位置
-    METHDO m_method; //请求方法
+    METHDO m_method;                     //请求方法
+    CHECK_STATE m_check_state;           //主状态机状态
 
     //请求报文中对应的变量
     char m_real_file[FILENAME_LEN];//存储读取文件的名称
@@ -87,7 +89,7 @@ private:
     char *m_vesrion;
     char *m_host;
     int m_content_length;
-    bool m_linger;
+    bool m_linger;//true为长连接
 };
 
 #endif

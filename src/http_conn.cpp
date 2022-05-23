@@ -134,11 +134,13 @@ http_conn::LINE_STATE http_conn::parse_line()
 //主状态机逻辑 解析请求行，获得请求方法，目标url及http版本号
 http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
 {
-    m_url = strpbrk(text, "\t");
-    if(!m_url)
+    //GET http:/somedir/page.html HTTP/1.1
+    m_url = strpbrk(text, " \t"); // url=" http://somedir/page.html HTTP/1.1"
+    if (!m_url)
         return BAD_REQUEST;
-    *m_url++ = '\0';
-    char *method = text;
+    *m_url++ = '\0';     // 去掉前面的空格url="http://somedir/page.html HTTP/1.1"
+                         // 同时 text="GET\0"
+    char *method = text; // method="GET"
     if(strcasecmp(method,"GET")==0)
         m_method = GET;
     else if(method,"POST"==0)
@@ -148,4 +150,84 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
     }
     else
         return BAD_REQUEST;
+    
+    //m_url此时跳过了第一个空格或\t字符，但不知道之后是否还有
+    //将m_url向后偏移，通过查找，继续跳过空格和\t字符，指向请求资源的第一个字符
+    //假如说第一个/之前有好几个空格 可以定位到空格后的第一个字符
+    m_url += strspn(m_url, " \t");
+    m_vesrion = strpbrk(m_url, " \t"); // version=" HTTP/1.1";
+    if (!m_vesrion)
+        return BAD_REQUEST;
+    *m_vesrion++ = '\0';               //去掉空格version="HTTP/1.1"
+                                       //url="http://somedir/page.html"
+    m_vesrion += strspn(m_vesrion, " \t");
+    if(!strcasecmp(m_vesrion,"HTTP/1.1")!=0)
+        return BAD_REQUEST;
+    
+    //增加http://情况
+    if (strncasecmp(m_url, "http://", 7) == 0)
+    {
+        m_url += 7;
+        m_url = strchr(m_url, '/');
+    }
+    //增加https://情况
+    if (strncasecmp(m_url, "https://", 8) == 0)
+    {
+        m_url += 8;
+        m_url = strchr(m_url, '/');//第一次出现/的位置
+    }
+    //一般的不会带有上述两种符号，直接是单独的/或/后面带访问资源
+    if(!m_url || m_url[0]!='/')
+        return BAD_REQUEST;
+    
+    //当url为/时 标识欢迎界面
+    if(strlen(m_url)==1)
+        strcat(m_url, "judge.html");
+    
+    //请求行处理完毕 主状态机转移处理请求头
+    m_check_state = CHECK_STATE_HEADER;
+    return NO_REQUEST;
+}
+
+//主状态机逻辑 解析请求头
+http_conn::HTTP_CODE http_conn::parsr_headers(char *text)
+{
+    //判断空行还是请求头
+    if(text[0]=='\0')
+    {
+        if(m_content_length!=0)//如果不为0说明是post请求
+        {
+            m_check_state = CHECK_STATE_CONTENT;
+            return NO_REQUEST;
+        }
+        return GET_REQUEST;//如果为0说明是get请求 请求结束
+    }
+    //解析头部 连接字段
+    else if(strncasecmp(text,"Connection:",11)==0)
+    {
+        text += 11;
+        if(strcasecmp(text,"keep-alive")==0)//如果是长连接
+        {
+            m_linger = true;
+        }
+    }
+    //解析头部 内容长度字段
+    else if(strncasecmp(text,"Content-length:",15)==0)
+    {
+        text += 15;
+        text+=strspn(text," \t");
+        m_content_length=atol(text);
+    }
+    //解析请求头部HOST字段
+    else if(strncasecmp(text,"Host:",5)==0)
+    {
+        text+=5;
+        text+=strspn(text," \t");
+        m_host=text;
+    }
+    else
+    {
+        printf("oop!unknow header: %s\n",text);
+    }
+    return NO_REQUEST;
 }
