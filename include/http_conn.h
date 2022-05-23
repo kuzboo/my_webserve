@@ -89,7 +89,10 @@ private:
     char *m_vesrion;
     char *m_host;
     int m_content_length;
-    bool m_linger;//true为长连接
+    bool m_linger; // true为长连接
+
+    int cgi; //是否启用cgi
+    char *m_string; //存储请求头数据
 };
 
 #endif

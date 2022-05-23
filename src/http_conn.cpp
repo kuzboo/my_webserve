@@ -76,24 +76,8 @@ void modfd(int epollfd,int fd,int ev,int TRIGMode)
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
 }
 
-//各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
-void http_conn::process()
-{
-    HTTP_CODE read_ret = process_read();
-    if(read_ret==NO_REQUEST)
-    {
-        //modfd(m_epollfd, m_sockfd, EPOLLIN);注册读事件
-        return;
-    }
 
-    bool write_ret = process_write(read_ret);
-    if(!write_ret)
-    {
-        close_conn();
-    }
-    //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
-}
-
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~状态机~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 //从状态机解析一行数据 
 //返回值为行的读取状态，有LINE_OK,LINE_BAD,LINE_OPEN
 http_conn::LINE_STATE http_conn::parse_line()
@@ -230,4 +214,50 @@ http_conn::HTTP_CODE http_conn::parsr_headers(char *text)
         printf("oop!unknow header: %s\n",text);
     }
     return NO_REQUEST;
+}
+
+//主状态机逻辑 解析内容
+http_conn::HTTP_CODE http_conn::parser_content(char *text)
+{
+    //判断buffer中是否读了消息体
+    if(m_read_idx>=(m_content_length+m_checked_idx))
+    {
+        text[m_content_length] = '\0';
+        m_string = text;
+        return GET_REQUEST;
+    }
+    return NO_REQUEST;
+}
+
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~请求报文响应报文处理部分~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+//用于将指针后移 指向未处理的报文
+char* http_conn::get_line()
+{
+    return m_read_buf + m_start_line;
+}
+
+//从m_read_buf读取 处理请求报文
+http_conn::HTTP_CODE http_conn::process_read()
+{
+    
+}
+
+//各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
+void http_conn::process()
+{
+    HTTP_CODE read_ret = process_read();
+    if(read_ret==NO_REQUEST)
+    {
+        //modfd(m_epollfd, m_sockfd, EPOLLIN);注册读事件
+        return;
+    }
+
+    bool write_ret = process_write(read_ret);
+    if(!write_ret)
+    {
+        close_conn();
+    }
+    //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
 }
