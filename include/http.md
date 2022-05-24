@@ -36,7 +36,7 @@ recv返回值小于0表示发生错误 设置errno 如果errno==EAGIN||EWOULDBLO
   - 为什么要写成
   `while((m_check_state==CHECK_STATE_CONTENT && line_status==LINE_OK)||((line_status=parse_line())==LINE_OK))`
     在GET请求报文中，每一行都是\r\n作为结束，所以对报文进行拆解时，仅用从状态机的状态
-    line_status=parse_line())==LINE_OK语句即可。但，在POST请求报文中，消息体的末尾
+    `line_status=parse_line()==LINE_OK`语句即可。但，在POST请求报文中，消息体的末尾
     没有任何字符，所以不能使用从状态机的状态，这里转而使用主状态机的状态作为循环入口条件。
   - 那后面的&& line_status==LINE_OK又是为什么?
     解析完消息体后，报文的完整解析就完成了，但此时主状态机的状态还是CHECK_STATE_CONTENT，也就是说，符合循环入口条件，还会再次进入循环，这并不是我们所希望的。为此，增加了该语句，并在完成消息体解析后，将line_status变量更改为LINE_OPEN，此时可以跳出循环，完成报文解析任务。

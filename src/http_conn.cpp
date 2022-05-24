@@ -241,7 +241,56 @@ char* http_conn::get_line()
 //从m_read_buf读取 处理请求报文
 http_conn::HTTP_CODE http_conn::process_read()
 {
-    
+    //初始化从状态机状态 HTTP请求解析结果
+    LINE_STATE line_state = LINE_OK;
+    HTTP_CODE ret = NO_REQUEST;
+    char *text = 0;
+
+    while (m_check_state == CHECK_STATE_CONTENT && line_state == LINE_OK 
+                              || (line_state = parse_line()) == LINE_OK)
+    {
+        text = get_line();
+        m_start_line = m_checked_idx;
+
+        //主状态机的三种状态转移逻辑
+        switch(m_check_state)
+        {
+            case CHECK_STATE_REQUESTLINE:
+            {
+                //解析请求行
+                ret = parse_request_line(text);
+                if(ret==BAD_REQUEST)
+                    return BAD_REQUEST;
+                break;
+            }
+            case CHECK_STATE_HEADER:
+            {
+                //解析请求头
+                ret = parsr_headers(text);
+                if(ret=BAD_REQUEST)
+                    return BAD_REQUEST;
+                //完成GET请求解析后 跳转到报文响应函数
+                else if(ret=GET_REQUEST)
+                {
+                    return do_request();
+                }
+                break;
+            }
+            case CHECK_STATE_CONTENT:
+            {
+                //解析消息体
+                ret = parser_content(text);
+                //解析完消息体后跳转到报文响应函数
+                if(ret==GET_REQUEST)
+                    return do_request();
+                //解析完消息体即完成报文解析 为了避免再次进入循环 更新line_state
+                line_state = LINE_OPEN;
+                break;
+            }
+            default:
+                return INTERNAL_ERROR;
+        }
+    }
 }
 
 //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务

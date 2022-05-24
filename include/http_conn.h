@@ -69,6 +69,7 @@ private:
     HTTP_CODE parsr_headers(char *text);      //主状态机解析 头数据
     HTTP_CODE parser_content(char *text);     //主状态机解析 内容
     LINE_STATE parse_line();                  //从状态机解析一行数据 分析是报文的那一部分
+    HTTP_CODE do_request();                   //生成响应报文
     char *get_line();                         // get_line用于将指针向后偏移，指向未处理的字符
 private:
     int m_sockfd;
