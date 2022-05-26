@@ -42,14 +42,15 @@ public:
     };            //从状态机,标识解析一行的读取状态
     enum HTTP_CODE
     {
-        NO_REQUEST = 0, //表示请求不完整，需要继续接收请求数据
-        GET_REQUEST,    //获得了完整的HTTP请求
-        BAD_REQUEST,    // HTTP请求报文有语法错误
-        NO_RESOURCE,    //请求不完整需要继续获取请求
-        FORBIDDEN_REQUEST,
-        FILE_REQUEST,
-        INTERNAL_ERROR //服务器内部错误 该结果在主状态机逻辑switch的default下，一般不会触发;
-    };//报文解析的结果
+        NO_REQUEST = 0,    //表示请求不完整，需要继续接收请求数据
+        GET_REQUEST,       //获得了完整的HTTP请求
+        BAD_REQUEST,       //HTTP请求报文有语法错误
+        NO_RESOURCE,       //请求不完整需要继续获取请求
+        FORBIDDEN_REQUEST, //客户对资源没有足够的访问权限
+        NOT_FOUND,         //服务器无法根据客户端的请求找到资源
+        FILE_REQUEST,      //文件存在
+        INTERNAL_ERROR     //服务器内部错误500 该结果在主状态机逻辑switch的default下，一般不会触发;
+    };                     //报文解析的结果
 
 public:
     http_conn();
@@ -111,6 +112,8 @@ private:
     struct stat m_file_stat; //文件属性
     struct iovec m_iv[2];    //io向量机制iovec
     char *m_file_address;    //读取服务器上文件地址
+    int bytes_to_send;       //剩余发送字节数
+    int bytes_have_send;     //已发送字节数
 };
 
 #endif

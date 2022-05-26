@@ -386,7 +386,7 @@ bool http_conn::add_response(const char *format...)
     return true;
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~添加响应报文~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~添加响应报文内部调用add_response()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 //添加状态行
 bool http_conn::add_status_line(int status, const char *title)
 {
@@ -426,6 +426,84 @@ bool http_conn::add_content(const char* content)
     return add_response("%s", content);
 }
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~process_read()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+//根据process_read对报文的解析结果 进行对应的响应
+bool http_conn::process_write(HTTP_CODE ret)
+{
+    switch(ret)
+    {
+        //服务器内部错误，500
+        case INTERNAL_ERROR:
+        {
+            add_status_line(500, "error_500_title");//状态行
+            add_headers(strlen("error_500_form"));  //消息头
+            if (!add_content("error_500_form"))     //消息体
+                return false;
+            break;
+        }
+        //客户对资源没有足够的访问权限，403
+        case FORBIDDEN_REQUEST:
+        {
+            add_status_line(500, "error_403_title");//状态行
+            add_headers(strlen("error_403_form"));  //消息头
+            if (!add_content("error_403_form"))     //消息体
+                return false;
+            break;
+        }
+        //报文语法有误， 400
+        case BAD_REQUEST:
+        {
+            add_status_line(400, "error_400_title");//状态行
+            add_headers(strlen("error_400_form"));  //消息头
+            if (!add_content("error_400_form"))     //消息体
+                return false;
+            break;
+        }
+        //无法找到资源，404
+        case NOT_FOUND:
+        {
+            add_status_line(400, "error_404_title");//状态行
+            add_headers(strlen("error_404_form"));  //消息头
+            if (!add_content("error_404_form"))     //消息体
+                return false;
+            break;
+        }
+        //文件存在，200
+        case FILE_REQUEST:
+        {
+            add_status_line(200, "ok_200_title");
+            //如果请求的资源存在
+            if (m_file_stat.st_size != 0)
+            {
+                add_headers(m_file_stat.st_size);
+                //第一个iovec指针指向响应报文缓冲区，长度指向m_write_idx
+                m_iv[0].iov_base = m_write_buf;
+                m_iv[0].iov_len = m_write_idx;
+                //第二个指向mmap返回的文件指针，长度指向文件大小
+                m_iv[1].iov_base = m_file_address;
+                m_iv[1].iov_len = m_file_stat.st_size;
+                //发送的全部数据为响应报文头部信息和文件大小
+                bytes_to_send = m_write_idx + m_file_stat.st_size;
+                return true;
+            }
+            else
+            {
+                //如果请求资源大小为0 返回空html文件
+                const char *ok_string = "<html><body></body></html>";
+                add_headers(strlen(ok_string));
+                if(!add_content(ok_string))
+                    return false;
+            }
+        }
+        default:
+            return false;
+    }
+    //除了FILE_REQUEST状态外，其余状态只申请一个iovec，指向响应报文缓冲区
+    m_iv[0].iov_base = m_write_buf;
+    m_iv[0].iov_len = m_write_idx;
+    m_iv_count = 1;
+    return true;
+}
 
 //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
 void http_conn::process()
@@ -444,4 +522,3 @@ void http_conn::process()
     }
     //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
 }
-
