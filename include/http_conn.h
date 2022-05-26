@@ -4,12 +4,16 @@
 #include<unistd.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdarg.h>
 #include<fcntl.h>
 #include<sys/socket.h>
 #include<sys/epoll.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<sys/mman.h>
+#include<sys/uio.h>
 #include<string.h>
 #include<errno.h>
-
 
 #include"locker.h"
 
@@ -71,6 +75,16 @@ private:
     LINE_STATE parse_line();                  //从状态机解析一行数据 分析是报文的那一部分
     HTTP_CODE do_request();                   //生成响应报文
     char *get_line();                         // get_line用于将指针向后偏移，指向未处理的字符
+
+    bool add_response(const char *format...);
+    bool add_status_line(int status, const char *title); //添加状态行
+    bool add_headers(int content_len);//添加消息头
+    bool add_content_type();
+    bool add_content_length(int content_len);
+    bool add_linger(); //添加连接状态
+    bool add_blank_line();//添加空行
+    bool add_content(const char *content); //添加文本
+
 private:
     int m_sockfd;
     char m_read_buf[READ_BUFFER_SIZE];   //存储读取的请求报文数据
@@ -80,7 +94,7 @@ private:
     int m_start_line;                    // m_read_buf已经解析的字符的个数
                                             
     char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
-    int m_write_idx;                     //写缓冲区的位置
+    int m_write_idx;                     //m_write_buf中最后一个字节的下一个位置
     METHDO m_method;                     //请求方法
     CHECK_STATE m_check_state;           //主状态机状态
 
@@ -92,8 +106,11 @@ private:
     int m_content_length;
     bool m_linger; // true为长连接
 
-    int cgi; //是否启用cgi
-    char *m_string; //存储请求头数据
+    int cgi;                 //是否启用cgi
+    char *m_string;          //存储请求头数据
+    struct stat m_file_stat; //文件属性
+    struct iovec m_iv[2];    //io向量机制iovec
+    char *m_file_address;    //读取服务器上文件地址
 };
 
 #endif

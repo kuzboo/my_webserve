@@ -26,7 +26,13 @@ recv返回值小于0表示发生错误 设置errno 如果errno==EAGIN||EWOULDBLO
 
 ## 解析报文整体流程
 
-### process_read函数
+### do_request()函数
+process_read函数的返回值是对请求的文件分析后的结果，一部分是语法错误导致的BAD_REQUEST，一部分是do_request的返回结果.
+如果主状态机状态为CHECK_STATE_HEADER 从状态机为GET_REQUEST就需要对请求做出响应,调用do_request.
+该函数将网站根目录和url文件拼接，通过分析html类型(最后一个/后头的字符串)跳转到指定页面;
+然后通过stat判断该文件属性,另外，为了提高访问速度，通过mmap进行映射，将普通文件映射到内存逻辑地址。
+
+### process_read()函数
 通过while循环，将主从状态机进行封装，对报文的每一行进行循环处理
 - 判断条件
   - 主状态机转移到CHECK_STATE_CONTENT，该条件涉及解析消息体
@@ -45,8 +51,6 @@ recv返回值小于0表示发生错误 设置errno 如果errno==EAGIN||EWOULDBLO
   - 从状态机读取数据
   - 调用get_line函数 通过m_start_line将从状态机数据间接赋值给text
   - 主状态机解析text
-
-  
 
 ### 主状态机逻辑
 主状态机初始状态是CHECK_STATE_REQUESTLINE，通过调用从状态机来驱动主状态机，在主状态机进行解析前，从状态机已经将每一行的末尾\r\n符号改为\0\0，以便于主状态机直接取出对应字符串进行处理。
@@ -73,3 +77,4 @@ HTTP报文每一行的数据由\r\n结束，空行则是仅仅是字符\r\n。�
 - 当前字节不是\r 判断是不是\n(一般是上次读到了\r就到了buffer末尾 这次需要继续接收)
   - 如果前一个字符是\r 将\r\n修改为\0\0 将m_checked_idx指向下一行开头 返回LINE_OK
 - 当前既不是\r也不是\n 接收不完整继续接收 返回LINE_OPEN
+

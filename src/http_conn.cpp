@@ -230,7 +230,78 @@ http_conn::HTTP_CODE http_conn::parser_content(char *text)
 }
 
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~请求报文响应报文处理部分~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~do_request()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+const char *doc_root = "/home/yhb/test/my_webServer/root"; //服务器根目录
+//将网站根目录和url文件拼接，获取文件属性，将文件映射到内存
+http_conn::HTTP_CODE http_conn::do_request()
+{
+    //将网站根目录赋值给real_file
+    strcpy(m_real_file, doc_root);
+    int len = strlen(doc_root);
+    //m_url最后一个/的位置
+    const char *p = strrchr(m_url, '/');
+
+    if (cgi == 1 && (*(p + 1) == '2' || *(p + 1) == '3'))
+    {
+        //根据标志判断是登录检测还是注册检测
+        //同步线程登录校验
+        //CGI多进程登录校验
+    }
+    //如果请求资源为/0 跳转到注册页面
+    if (*(p + 1) == '0')
+    {
+        char *m_url_real = (char *)malloc(sizeof(char) * 200);
+        strcpy(m_url_real, "/register.html");
+        //将网站目录和/register.html进行拼接，更新到m_real_file中
+        /*
+        【为什么要+len呢】m_real_file是这个字符串的首地址，如果不加len，就是从
+        //首地址到strlen(m_url_real)这段地址内容赋值为m_url_real，所以+len为的是
+        从最后一个地址开始赋值
+        */
+        strncpy(m_real_file + len, m_url_real, strlen(m_url_real));
+        free(m_url_real);
+    }
+    //如果请求资源为/1 跳转到登陆界面
+    else if (*(p + 1) == '1')
+    {
+        char *m_url_real = (char *)malloc(sizeof(char *) * 200);
+        strcpy(m_url_real, "/log.html");
+        //将网站目录与log合并 更新到m_real_file中
+        strncpy(m_real_file + len, m_url_real, strlen(m_url_real));
+        free(m_url_real);
+    }
+    else
+    {
+        //如果以上均不符合，即不是登录和注册，直接将url与网站目录拼接
+        //这里的情况是welcome界面，请求服务器上的一个图片
+        char *m_url_real = (char *)malloc(sizeof(char *) * 200);
+        strncpy(m_real_file + len, m_url_real, strlen(m_url_real));
+        free(m_url_real);
+    }
+
+    //通过stat获取请求资源文件信息
+    //成功,将信息更新到m_file_stat结构体中;失败 返回NO_RESOURCE标识资源不存在
+    if(stat(m_real_file,&m_file_stat)<0)
+        return NO_RESOURCE;
+    //判断文件的权限，是否可读，不可读则返回FORBIDDEN_REQUEST状态
+    if(!(m_file_stat.st_mode&S_IROTH))
+        return FORBIDDEN_REQUEST;
+    //判断文件类型，如果是目录，则返回BAD_REQUEST，表示请求报文有误
+    if(S_ISDIR(m_file_stat.st_mode))
+        return BAD_REQUEST;
+
+    //以只读方式获取文件描述符，通过mmap将该文件映射到内存中
+    int fd = open(m_real_file, O_RDONLY);
+    m_file_address = (char *)mmap(NULL, m_file_stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    //关闭文件描述符 避免浪费和占用
+    close(fd);
+
+    //标识请求文件存在 且可以访问
+    return FILE_REQUEST;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~process_read()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 //用于将指针后移 指向未处理的报文
 char* http_conn::get_line()
@@ -293,6 +364,69 @@ http_conn::HTTP_CODE http_conn::process_read()
     }
 }
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~add_response()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*将可变参列表加入到写缓冲区，更新 m_write_idx*/
+bool http_conn::add_response(const char *format...)
+{
+    if(m_write_idx>=WRITE_BUFFER_SIZE)
+        return false;
+
+    va_list arg_list;           //定义可变参数列表
+    va_start(arg_list, format); //将变量arg_list初始化为传入参数
+    //将数据format从可变参数列表写入缓冲区写，返回写入数据的长度。因为包括\0所以第二个参数size要-1
+    int len = vsnprintf(m_write_buf + m_write_idx, WRITE_BUFFER_SIZE - 1 - m_write_idx, format, arg_list);
+    //如果写入的数据长度超过缓冲区剩余空间，则报错
+    if(len>=(WRITE_BUFFER_SIZE-m_write_idx-1))
+    {
+        va_end(arg_list);
+        return false;
+    }
+    m_write_idx += len;//更新写缓冲区位置
+    va_end(arg_list);  //清空可变参列表
+    return true;
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~添加响应报文~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+//添加状态行
+bool http_conn::add_status_line(int status, const char *title)
+{
+    return add_response("%s %d %s\r\n", "HTTP/1.1", status, title);
+}
+//添加响应报文长度
+bool http_conn::add_content_length(int content_len)
+{
+    return add_response("Content-Length:%d\r\n", content_len);
+}
+//添加文本类型这里是html
+bool http_conn::add_content_type()
+{
+    return add_response("Content-Type:%s\r\n", "text/html");
+}
+//添加连接状态
+bool http_conn::add_linger()
+{
+    return add_response("Connection:%s\r\n", 
+    (m_linger == true) ? "keep-alive" : "close");
+}
+//添加空行
+bool http_conn::add_blank_line()
+{
+    return add_response("%s", "\r\n");
+}
+//添加消息头(文本长度 连接状态 空行)
+bool http_conn::add_headers(int content_len)
+{
+    add_content_length(content_len);
+    add_linger();
+    add_blank_line();
+}
+//添加文本
+bool http_conn::add_content(const char* content)
+{
+    return add_response("%s", content);
+}
+
+
 //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
 void http_conn::process()
 {
@@ -310,3 +444,4 @@ void http_conn::process()
     }
     //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
 }
+
