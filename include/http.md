@@ -1,27 +1,27 @@
 ## http处理流程
 - 浏览器端发出http连接请求，主线程创建http对象接收请求，并将所有数据读入对于buffer，然后将对象插入到任务队列，工作线程从任务队列中取出一个任务进行处理。
--工作线程取出任务后，调用process_read函数，通过主、从状态机对请求报文进行解析
--解析完之后，跳转do_request函数生成响应报文，通过process_write写入buffer，返回给浏览器端
+- 工作线程取出任务后，调用process_read函数，通过主、从状态机对请求报文进行解析
+- 解析完之后，跳转do_request函数生成响应报文，通过process_write写入buffer，返回给浏览器端
 
-## socket设置成非阻塞
+## Note
+
+### socket设置成非阻塞
 int flg=fcntl(cfd,F_GETFL);
 flg|=0_NONBLOCK;
 fcntl(cfd,F_SETFL,flg);
 
-## epoll
+### epoll
 epoll两种工作模式
-- ET 高效模式 只支持 非阻塞。
-
-
-recv返回值小于0表示发生错误 设置errno 如果errno==EAGIN||EWOULDBLOCK 表示已经没有数据可读了
+- ET 高效模式 只支持 非阻塞
+在非阻塞模式下writev返回错误EAGAIN
+首先是我把套接字设置为异步的了，然后在使用write发送数据时采取的方式是循环发送大量的数据；由于是异步的，write\send将要发送的 数据提交到发送缓冲区后是立即返回的，并不需要对端确认数据已接收。在这种情况下是很有可能出现发送缓冲区被填满，导致write\send无法再向缓冲 区提交要发送的数据。因此就产生了Resource temporarily unavailable的错误，EAGAIN 的意思也很明显，就是要你再次尝试。
 
 - EPOLLONESHOT
-    一个线程读取某个socket上的数据后开始处理数据，在处理过程中该socket上又有新数据可读，此时另一个线程被唤醒读取，此时出现两个线程处理同一个socket
-
-    我们期望的是一个socket连接在任一时刻都只被一个线程处理，通过epoll_ctl对该文件描述符注册epolloneshot事件，一个线程处理socket时，其他线程将无法处理，当该线程处理完后，需要通过epoll_ctl重置epolloneshot事件
+一个线程读取某个socket上的数据后开始处理数据，在处理过程中该socket上又有新数据可读，此时另一个线程被唤醒读取，此时出现两个线程处理同一个socket
+我们期望的是一个socket连接在任一时刻都只被一个线程处理，通过epoll_ctl对该文件描述符注册epolloneshot事件，一个线程处理socket时，其他线程将无法处理，**当该线程处理完后，需要通过epoll_ctl重置epolloneshot事件**
 
 - EPOLLRDHUP
-在socket上接收到对方关闭连接的请求之后出发
+在socket上接收到对方关闭连接的请求之后触发
 - EPOLL_CTL_MOD：更改注册的文件描述符的关注事件发生情况
 
 ## 解析报文整体流程
@@ -29,7 +29,7 @@ recv返回值小于0表示发生错误 设置errno 如果errno==EAGIN||EWOULDBLO
 ### do_request()函数
 process_read函数的返回值是对请求的文件分析后的结果，一部分是语法错误导致的BAD_REQUEST，一部分是do_request的返回结果.
 如果主状态机状态为CHECK_STATE_HEADER 从状态机为GET_REQUEST就需要对请求做出响应,调用do_request.
-该函数将网站根目录和url文件拼接，通过分析html类型(最后一个/后头的字符串)跳转到指定页面;
+该函数将网站根目录和url文件拼接，**通过分析html类型(最后一个/后头的字符串)跳转到指定页面**;
 然后通过stat判断该文件属性,另外，为了提高访问速度，通过mmap进行映射，将普通文件映射到内存逻辑地址。
 
 ### process_read()函数
@@ -78,3 +78,24 @@ HTTP报文每一行的数据由\r\n结束，空行则是仅仅是字符\r\n。�
   - 如果前一个字符是\r 将\r\n修改为\0\0 将m_checked_idx指向下一行开头 返回LINE_OK
 - 当前既不是\r也不是\n 接收不完整继续接收 返回LINE_OPEN
 
+## 响应报文流程
+
+### add_response()
+将响应报文写入m_write_buf 并更新m_write_idx(因为发送报文的时候需要调用writev函数，需要iovec结构体指定发送缓冲区的地址).
+响应报文包括 状态行 消息头 空行 消息体三部分，通过add_status_line() add_headers() add_blank_line() add_headers(int content_len) 实现，内部调用add_response()
+
+### process_write()
+根据process_read对请求报文的解析结果，产生对应的响应报文(包括状态行消息头消息体)
+通过iovec结构体指定响应报文的地址和长度，状态为OK的情况需要申请两个iovec，一个指向
+响应报文一个指向要传输的文件，而其余状态只申请一个就行，指向响应报文
+
+### write()
+服务器子线程调用process_write完成响应报文，随后注册epollout事件。服务器主线程检测写事件，并调用http_conn::write函数将响应报文发送给浏览器端。
+
+在生成响应报文时初始化byte_to_send，包括头部信息和要发送的数据大小。通过writev函数循环发送响应报文数据，根据返回值更新byte_have_send和iovec结构体的指针和长度，并判断响应报文整体是否发送成功。
+- 若writev单次发送成功，更新byte_to_send和byte_have_send大小，若响应报文整体发送成功，则取消mmap映射，并判断是否是长连接
+  - 长连接重置http类实例，注册读事件，不关闭连接
+  - 短连接直接关闭连接
+- 若writev单次发送不成功，判断是否是写缓冲区满了
+  - 若不是因为缓冲区满了而失败，取消mmap映射，关闭连接
+  - 若eagain则满了，更新iovec结构体的指针和长度，并注册写事件，等待下一次写事件触发（当写缓冲区从不可写变为可写，触发epollout），因此在此期间无法立即接收到同一用户的下一请求，但可以保证连接的完整性。

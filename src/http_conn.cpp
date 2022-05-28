@@ -29,6 +29,7 @@ bool http_conn::read_once()
     return true;
 }
 
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~epoll相关~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 //套接字文件描述符设置成非阻塞
 int setnonblocking(int fd)
 {
@@ -37,7 +38,6 @@ int setnonblocking(int fd)
     fcntl(fd, F_SETFL, new_option);
     return fd;
 }
-
 //向内核时间表注册新事件，开启EPOLLOENSHOT,针对客户端连接的描述符，listenfd不用开启
 void addfd(int epollfd,int fd,bool one_shot)
 {
@@ -55,27 +55,26 @@ void addfd(int epollfd,int fd,bool one_shot)
     epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
     setnonblocking(fd);
 }
-
 //内核事件表删除事件  并关闭套接字
 void removefd(int epollfd,int fd)
 {
     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);
     close(fd);
 }
-
-//将事件重置为EPOLLONESHOT【最后两个参数什么意思】
-void modfd(int epollfd,int fd,int ev,int TRIGMode)
+//将事件重置为EPOLLONESHOT
+void modfd(int epollfd,int fd,int ev)
 {
     epoll_event event;
     event.data.fd = fd;
-    if (1 == TRIGMode)//ET模式
-        event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
-    else//LT模式
-        event.events = ev | EPOLLONESHOT | EPOLLRDHUP;
-    //EPOLL_CTL_MOD更改注册的文件描述符的关注事件发生情况
+#ifdef  ET
+    event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
+#endif
+
+#ifdef LT
+    event.events = ev | EPOLLONESHOT | EPOLLRDHUP;
+#endif
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
 }
-
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~状态机~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 //从状态机解析一行数据 
@@ -235,7 +234,7 @@ const char *doc_root = "/home/yhb/test/my_webServer/root"; //服务器根目录
 //将网站根目录和url文件拼接，获取文件属性，将文件映射到内存
 http_conn::HTTP_CODE http_conn::do_request()
 {
-    //将网站根目录赋值给real_file
+    //将网站根目录赋值给m_real_file
     strcpy(m_real_file, doc_root);
     int len = strlen(doc_root);
     //m_url最后一个/的位置
@@ -426,8 +425,12 @@ bool http_conn::add_content(const char* content)
     return add_response("%s", content);
 }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~process_read()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-//根据process_read对报文的解析结果 进行对应的响应
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~process_write()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+根据process_read对请求报文的解析结果，产生对应的响应报文(包括状态行消息头消息体)
+通过iovec结构体指定响应报文的地址和长度，状态为OK的情况需要申请两个iovec，一个指向
+响应报文一个指向要传输的文件，而其余状态只申请一个就行，指向响应报文
+*/
 bool http_conn::process_write(HTTP_CODE ret)
 {
     switch(ret)
@@ -476,12 +479,13 @@ bool http_conn::process_write(HTTP_CODE ret)
             if (m_file_stat.st_size != 0)
             {
                 add_headers(m_file_stat.st_size);
-                //第一个iovec指针指向响应报文缓冲区，长度指向m_write_idx
+                //第一个iovec指针指向响应报文缓冲区，长度指向m_write_idx 
                 m_iv[0].iov_base = m_write_buf;
                 m_iv[0].iov_len = m_write_idx;
                 //第二个指向mmap返回的文件指针，长度指向文件大小
                 m_iv[1].iov_base = m_file_address;
                 m_iv[1].iov_len = m_file_stat.st_size;
+                m_iv_count = 2;
                 //发送的全部数据为响应报文头部信息和文件大小
                 bytes_to_send = m_write_idx + m_file_stat.st_size;
                 return true;
@@ -502,6 +506,7 @@ bool http_conn::process_write(HTTP_CODE ret)
     m_iv[0].iov_base = m_write_buf;
     m_iv[0].iov_len = m_write_idx;
     m_iv_count = 1;
+    bytes_to_send = m_write_idx;
     return true;
 }
 
@@ -511,7 +516,7 @@ void http_conn::process()
     HTTP_CODE read_ret = process_read();
     if(read_ret==NO_REQUEST)
     {
-        //modfd(m_epollfd, m_sockfd, EPOLLIN);注册读事件
+        modfd(m_epollfd, m_sockfd, EPOLLIN);//注册读事件
         return;
     }
 
@@ -520,5 +525,87 @@ void http_conn::process()
     {
         close_conn();
     }
-    //modfd(m_epollfd, m_sockfd, EPOLLOUT);注册写事件
+    modfd(m_epollfd, m_sockfd, EPOLLOUT);//注册写事件
+}
+
+//取消内存映射
+void http_conn::unmap()
+{
+    if(m_file_address)
+    {
+        munmap(m_file_address, m_file_stat.st_size);
+        m_file_address = 0;
+    }
+}
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~write()~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+//将写缓冲区的数据发送到浏览器端
+bool http_conn::write()
+{
+    int temp = 0;
+    int newadd = 0;
+    
+    //如果要发送字节数据为空 标识响应报文为空 重新注册读事件
+    if(!bytes_to_send)
+    {
+        modfd(m_epollfd, m_sockfd, EPOLLIN);
+        init();
+        return true;
+    }
+
+    while(1)
+    {
+        temp = writev(m_sockfd, m_iv, m_iv_count);
+        if(temp>0) //如果正常发送
+        {
+            bytes_have_send += temp;//更新已经发送字节
+            newadd = bytes_have_send - m_write_idx;//偏移文件iovec的指针？？？？
+        }
+        if(temp<=-1)
+        {
+            if(errno==EAGAIN)//buf不可写 缓冲区满了
+            {
+                //第一个iovec发送完毕，发送第二个iovec数据
+                //意思就是头部发送完毕 只需要发送文件数据
+                if (bytes_have_send >= m_iv[0].iov_len)
+                {
+                    //不再继续发送头部信息
+                    m_iv[0].iov_len = 0;
+                    //这两句什么意思？？？
+                    m_iv[1].iov_base = m_file_address + newadd;
+                    m_iv[1].iov_len = bytes_to_send;
+                }
+                else//头部也没有发送成功 继续发送头部
+                {
+                    m_iv[0].iov_base = m_write_buf + bytes_to_send;
+                    m_iv[0].iov_len = m_iv[0].iov_len - bytes_have_send;
+                }
+                //重新注册写事件
+                modfd(m_epollfd, m_sockfd, EPOLLOUT);
+                return true;
+            } 
+            //如果发送失败  不是缓冲区问题 取消映射
+            unmap();
+            return false;
+        }
+        //更新已发送字节数
+        bytes_to_send -= temp;
+        //如果数据全部发送完
+        if(bytes_to_send<=0)
+        {
+            unmap();
+            //在epoll树上重置EPOLLONESHOT事件
+            modfd(m_epollfd, m_sockfd, EPOLLIN);
+
+            //浏览器的请求为长连接
+            if(m_linger)
+            {
+                //重新初始化HTTP对象
+                init();
+                return true;
+            }
+            else
+                return false;
+        }
+    }
 }

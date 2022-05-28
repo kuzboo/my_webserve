@@ -58,8 +58,8 @@ public:
     //初始化套接字地址，函数内部会调用私有方法init
     void init(int sockfd, const struct sockaddr_in &addr);
     void close_conn(bool read_close = true); //关闭http连接
-    bool read_once();                        //读取浏览器发来的所有请求c
-    bool write_once();                       //响应报文写入
+    bool read_once();                        //一次性读取浏览器发来的所有请求
+    bool write();                       //响应报文写入
     void process();          //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
 
 public:
@@ -77,6 +77,8 @@ private:
     HTTP_CODE do_request();                   //生成响应报文
     char *get_line();                         // get_line用于将指针向后偏移，指向未处理的字符
 
+    void unmap(); //取消内存映射
+    
     bool add_response(const char *format...);
     bool add_status_line(int status, const char *title); //添加状态行
     bool add_headers(int content_len);//添加消息头
@@ -111,6 +113,7 @@ private:
     char *m_string;          //存储请求头数据
     struct stat m_file_stat; //文件属性
     struct iovec m_iv[2];    //io向量机制iovec
+    int m_iv_count;          // iovec结构体数组长度
     char *m_file_address;    //读取服务器上文件地址
     int bytes_to_send;       //剩余发送字节数
     int bytes_have_send;     //已发送字节数
