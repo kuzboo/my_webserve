@@ -14,6 +14,7 @@
 #include<sys/uio.h>
 #include<string.h>
 #include<errno.h>
+#include<map>
 
 #include"locker.h"
 
@@ -78,7 +79,7 @@ private:
     char *get_line();                         // get_line用于将指针向后偏移，指向未处理的字符
 
     void unmap(); //取消内存映射
-    
+
     bool add_response(const char *format...);
     bool add_status_line(int status, const char *title); //添加状态行
     bool add_headers(int content_len);//添加消息头

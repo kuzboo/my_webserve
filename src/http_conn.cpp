@@ -1,35 +1,22 @@
+#include<fstream>
+
 #include"../include/http_conn.h"
 using namespace std;
 
-//循环读取客户数据 读取到m_read_buf中并更新m_read_idx 直到无数据可读或对方关闭连接
-bool http_conn::read_once()
-{
-    if(m_read_idx>=READ_BUFFER_SIZE)
-    {
-        return false;
-    }
-    int bytes_read = 0;
-    while(true)
-    {
-        bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
-        if(bytes_read==-1) //recv返回值小于0 表示发生错误
-        {
-            /*
-            非阻塞ET模式下，需要一次性将数据读完 
-            这两种errno表示已经没有数据可读了直接跳出
-            */
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
-            return false;
-        }
-        else if(bytes_read==0)//返回0表示对端关闭连接
-            return false;
-        m_read_idx += bytes_read;
-    }
-    return true;
-}
+//响应状态信息
+const char *ok_200_title = "OK";
+const char *error_400_title = "Bad Request";
+const char *error_400_form = "Your request has bad syntax or is inherently impossible to staisfy.\n";
+const char *error_403_title = "Forbidden";
+const char *error_403_form = "You do not have permission to get file form this server.\n";
+const char *error_404_title = "Not Found";
+const char *error_404_form = "The requested file was not found on this server.\n";
+const char *error_500_title = "Internal Error";
+const char *error_500_form = "There was an unusual problem serving the request file.\n";
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~epoll相关~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+locker m_lock;
+map<string, int> users;
+
 //套接字文件描述符设置成非阻塞
 int setnonblocking(int fd)
 {
@@ -38,7 +25,9 @@ int setnonblocking(int fd)
     fcntl(fd, F_SETFL, new_option);
     return fd;
 }
-//向内核时间表注册新事件，开启EPOLLOENSHOT,针对客户端连接的描述符，listenfd不用开启
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~epoll相关~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+//向内核时间表注册读事件，开启EPOLLOENSHOT,针对客户端连接的描述符，listenfd不用开启
 void addfd(int epollfd,int fd,bool one_shot)
 {
     epoll_event event;  //声明一个epoll_event类型的变量
@@ -74,6 +63,55 @@ void modfd(int epollfd,int fd,int ev)
     event.events = ev | EPOLLONESHOT | EPOLLRDHUP;
 #endif
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
+}
+
+int http_conn::m_user_count = 0;
+int http_conn::m_epollfd = -1;
+
+//关闭一个连接
+void http_conn::close_conn(bool real_close)
+{
+    if(real_close && (m_sockfd!=-1))
+    {
+        printf("close %d\n", m_sockfd);
+        removefd(m_epollfd, m_sockfd);
+        m_sockfd = -1;
+        m_user_count--;
+    }
+}
+
+//初始化连接，外部调用初始化套接字地址
+void http_conn::init()
+{
+    
+}
+
+//循环读取客户数据 读取到m_read_buf中并更新m_read_idx 直到无数据可读或对方关闭连接
+bool http_conn::read_once()
+{
+    if(m_read_idx>=READ_BUFFER_SIZE)
+    {
+        return false;
+    }
+    int bytes_read = 0;
+    while(true)
+    {
+        bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
+        if(bytes_read==-1) //recv返回值小于0 表示发生错误
+        {
+            /*
+            非阻塞ET模式下，需要一次性将数据读完 
+            这两种errno表示已经没有数据可读了直接跳出
+            */
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
+            return false;
+        }
+        else if(bytes_read==0)//返回0表示对端关闭连接
+            return false;
+        m_read_idx += bytes_read;
+    }
+    return true;
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~状态机~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/

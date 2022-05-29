@@ -1,9 +1,12 @@
 ## http处理流程
-- 浏览器端发出http连接请求，主线程创建http对象接收请求，并将所有数据读入对于buffer，然后将对象插入到任务队列，工作线程从任务队列中取出一个任务进行处理。
+- 浏览器端发出http连接请求，主线程创建http对象接收请求，调用read_once一次性将所有数据读入m_read_buf，然后将对象插入到任务队列，工作线程从任务队列中取出一个任务进行处理。
 - 工作线程取出任务后，调用process_read函数，通过主、从状态机对请求报文进行解析
-- 解析完之后，跳转do_request函数生成响应报文，通过process_write写入buffer，返回给浏览器端
+- 解析完之后，跳转到do_request()函数生成响应报文，通过process_write向m_write_buf中写入响应报文，随后注册epollout事件。服务器主线程检测写事件，并调用http_conn::write函数将响应报文发送给浏览器端。
 
-## Note
+## 各种函数主要逻辑
+- read_once() 循环调用recv()函数从套接字缓冲区读取数据到m_read_buf中，如果返回-1，而且errno是EAGAIN，表明缓冲区里头已经没有数据了全部读完 跳出循环。
+
+
 
 ### socket设置成非阻塞
 int flg=fcntl(cfd,F_GETFL);
