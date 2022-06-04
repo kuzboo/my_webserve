@@ -19,10 +19,9 @@ public:
     }
 
     //日志文件，缓冲区大小，最大行数，最长日志条队列
-    bool init(const char *file_name, int log_buf_size = 8192, 
-    int max_lines = 5000000, int max_queue_size = 0);
+    bool init(const char *file_name, int log_buf_size = 8192, int max_lines = 5000000, int max_queue_size = 0);
 
-    //异步写入日志公有方法 内部调用私用方法async_write_log
+    //异步写入日志公有方法 内部调用私用方法async_write_log(回调函数)
     static void *flush_log_thread(void *args)
     {
         //类名+：：调用静态方法
@@ -46,7 +45,7 @@ private:
             fclose(m_fp);
     }
 
-    //异步写日志
+    //异步写日志 从阻塞队列获取一个日志string写入文件
     void *async_write_log()
     {
         string single_log;
