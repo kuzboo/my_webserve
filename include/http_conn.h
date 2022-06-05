@@ -14,9 +14,16 @@
 #include<sys/uio.h>
 #include<string.h>
 #include<errno.h>
+#include<mysql/mysql.h>
+#include<string>
 #include<map>
 
 #include"locker.h"
+#include"lst_timer.h"
+#include"connection_pool.h"
+#include"log.h"
+
+using namespace std;
 
 class http_conn
 {
@@ -57,15 +64,21 @@ public:
     http_conn();
     ~http_conn();
     //初始化套接字地址，函数内部会调用私有方法init
-    void init(int sockfd, const struct sockaddr_in &addr);
+    void init(int sockfd, const struct sockaddr_in &addr, char *, int, int,
+              string user, string password, string sqlname);
     void close_conn(bool read_close = true); //关闭http连接
     bool read_once();                        //一次性读取浏览器发来的所有请求
-    bool write();                       //响应报文写入
-    void process();          //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务
-
-public:
+    bool write();                            //响应报文发送到服务器套接字缓冲区
+    void process();                          //各子线程通过process函数对任务进行处理，完成报文解析与响应两个任务;
+    sockaddr_in *get_address() { return &m_address; }
+    void initMySQL_result(connection_pool *connPool);
+    
     static int m_epollfd;    //
     static int m_user_count; //
+    int timer_flag;
+    int improv;
+    int m_state;//读为0，写为1
+    MYSQL *m_mysql;
 
 private:
     void init();                              //
@@ -89,16 +102,16 @@ private:
     bool add_blank_line();//添加空行
     bool add_content(const char *content); //添加文本
 
-private:
     int m_sockfd;
+    sockaddr_in m_address;               //套接字地址
     char m_read_buf[READ_BUFFER_SIZE];   //存储读取的请求报文数据
+    char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
     char m_real_file[FILENAME_LEN];      //读取文件的名称
-    int m_checked_idx;                   // m_read_buf中读取的位置
     int m_read_idx;                      // m_read_buf中数据的最后一个字节的下一个位置
+    int m_write_idx;                     //m_write_buf中最后一个字节的下一个位置
+    int m_checked_idx;                   // m_read_buf中读取的位置
     int m_start_line;                    // m_read_buf已经解析的字符的个数
                                             
-    char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
-    int m_write_idx;                     //m_write_buf中最后一个字节的下一个位置
     METHDO m_method;                     //请求方法
     CHECK_STATE m_check_state;           //主状态机状态
 
@@ -118,6 +131,14 @@ private:
     char *m_file_address;    //读取服务器上文件地址
     int bytes_to_send;       //剩余发送字节数
     int bytes_have_send;     //已发送字节数
+
+    map<string, string> m_users; //用户名和密码
+    int m_TRIGmode;              // epoll触发模式
+    int m_close_log;
+
+    char m_sql_user[100]; //数据库用户名
+    char m_sql_password[100];//登录密码
+    char m_sql_name[100];//登录用户名
 };
 
 #endif

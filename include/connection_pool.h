@@ -1,5 +1,5 @@
-#ifndef _CONNECTION_POOL_
-#define _CONNECTION_POOL_
+#ifndef CONNECTION_POOL_
+#define CONNECTION_POOL_
 
 #include<list>
 #include<string>

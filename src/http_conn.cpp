@@ -27,18 +27,18 @@ int setnonblocking(int fd)
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~epoll相关~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-//向内核时间表注册读事件，开启EPOLLOENSHOT,针对客户端连接的描述符，listenfd不用开启
-void addfd(int epollfd,int fd,bool one_shot)
+//向内核时间表注册读事件，开启EPOLLOENSHOT,针对客户端连接的描述符，
+//listenfd不用开启，TRIGmode=1标识边沿触发
+void addfd(int epollfd,int fd,bool one_shot, int TRIGmode)
 {
     epoll_event event;  //声明一个epoll_event类型的变量
     event.data.fd = fd;//将需要监听的文件描述符 挂在到epoll结构体上
-#ifdef ET
-    event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
-#endif
 
-#ifdef LT
-    event.events = EPOLLIN | EPOLLRDHUP;
-#endif
+    if(TRIGmode==1)
+        event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+    else
+        event.events = EPOLLIN | EPOLLRDHUP;
+
     if(one_shot)
         event.events |= EPOLLONESHOT;
     epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
@@ -51,20 +51,20 @@ void removefd(int epollfd,int fd)
     close(fd);
 }
 //将事件重置为EPOLLONESHOT
-void modfd(int epollfd,int fd,int ev)
+void modfd(int epollfd,int fd,int ev,int TRIGmode)
 {
     epoll_event event;
     event.data.fd = fd;
-#ifdef  ET
-    event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
-#endif
 
-#ifdef LT
-    event.events = ev | EPOLLONESHOT | EPOLLRDHUP;
-#endif
+    if(TRIGmode==1)
+        event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
+    else
+        event.events = ev | EPOLLONESHOT | EPOLLRDHUP;
+
     epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
 }
 
+//静态成员类外初始化
 int http_conn::m_user_count = 0;
 int http_conn::m_epollfd = -1;
 
@@ -81,9 +81,51 @@ void http_conn::close_conn(bool real_close)
 }
 
 //初始化连接，外部调用初始化套接字地址
+void http_conn::init(int sockfd, const struct sockaddr_in &addr, char *root, int TRIGmode,
+          int close_log,string user, string passwd, string sqlname)
+{
+    m_sockfd = sockfd;
+    m_address = addr;
+
+    addfd(m_epollfd, sockfd, true, m_TRIGmode);
+    ++m_user_count;
+
+    doc_root = root;
+    m_TRIGmode = TRIGmode;
+    m_close_log = close_log;
+
+    strcpy(m_sql_user, user.c_str());
+    strcpy(m_sql_name, sqlname.c_str());
+    strcpy(m_sql_password, passwd.c_str());
+
+    init(); //调用私有成员
+}
+
+//初始化接收新的连接 check_state默认为分析请求行状态
 void http_conn::init()
 {
-    
+    m_mysql = NULL;
+    bytes_to_send = 0;
+    bytes_have_send = 0;
+    m_check_state = CHECK_STATE_REQUESTLINE;
+    m_linger = false;
+    m_method = GET;
+    m_url = 0;
+    m_vesrion = 0;
+    m_content_length = 0;
+    m_host = 0;
+    m_start_line = 0;
+    m_checked_idx = 0;
+    m_read_idx = 0;
+    m_write_idx = 0;
+    cgi = 0;
+    m_state = 0;
+    timer_flag = 0;
+    improv = 0;
+
+    memset(m_read_buf,'\0',READ_BUFFER_SIZE);
+    memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
+    memset(m_real_file, '\0', FILENAME_LEN);
 }
 
 //循环读取客户数据 读取到m_read_buf中并更新m_read_idx 直到无数据可读或对方关闭连接
@@ -94,24 +136,38 @@ bool http_conn::read_once()
         return false;
     }
     int bytes_read = 0;
-    while(true)
+
+    if (0 == m_TRIGmode) //水平触发
     {
         bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
-        if(bytes_read==-1) //recv返回值小于0 表示发生错误
-        {
-            /*
-            非阻塞ET模式下，需要一次性将数据读完 
-            这两种errno表示已经没有数据可读了直接跳出
-            */
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
+        
+        if(bytes_read<=0)
             return false;
-        }
-        else if(bytes_read==0)//返回0表示对端关闭连接
-            return false;
+
         m_read_idx += bytes_read;
+        return true;
     }
-    return true;
+    else//边沿触发
+    {
+        while(true)
+        {
+            bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
+            if (bytes_read == -1) // recv返回值小于0 表示发生错误
+            {
+                /*
+                非阻塞ET模式下，需要一次性将数据读完
+                这两种errno表示已经没有数据可读了直接跳出
+                */
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                    break;
+                return false;
+            }
+            else if (bytes_read == 0) //返回0表示对端关闭连接
+                return false;
+            m_read_idx += bytes_read;
+        }
+        return true;
+    }
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~状态机~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -257,9 +313,10 @@ http_conn::HTTP_CODE http_conn::parsr_headers(char *text)
 http_conn::HTTP_CODE http_conn::parser_content(char *text)
 {
     //判断buffer中是否读了消息体
-    if(m_read_idx>=(m_content_length+m_checked_idx))
+    if (m_read_idx >= (m_content_length + m_checked_idx))
     {
         text[m_content_length] = '\0';
+        //POST请求中最后为输入的用户名和密码
         m_string = text;
         return GET_REQUEST;
     }
@@ -554,7 +611,7 @@ void http_conn::process()
     HTTP_CODE read_ret = process_read();
     if(read_ret==NO_REQUEST)
     {
-        modfd(m_epollfd, m_sockfd, EPOLLIN);//注册读事件
+        modfd(m_epollfd, m_sockfd, EPOLLIN, m_TRIGmode);//注册读事件
         return;
     }
 
@@ -563,7 +620,7 @@ void http_conn::process()
     {
         close_conn();
     }
-    modfd(m_epollfd, m_sockfd, EPOLLOUT);//注册写事件
+    modfd(m_epollfd, m_sockfd, EPOLLOUT,m_TRIGmode);//注册写事件
 }
 
 //取消内存映射
@@ -586,7 +643,7 @@ bool http_conn::write()
     //如果要发送字节数据为空 标识响应报文为空 重新注册读事件
     if(!bytes_to_send)
     {
-        modfd(m_epollfd, m_sockfd, EPOLLIN);
+        modfd(m_epollfd, m_sockfd, EPOLLIN,m_TRIGmode);
         init();
         return true;
     }
@@ -619,7 +676,7 @@ bool http_conn::write()
                     m_iv[0].iov_len = m_iv[0].iov_len - bytes_have_send;
                 }
                 //重新注册写事件
-                modfd(m_epollfd, m_sockfd, EPOLLOUT);
+                modfd(m_epollfd, m_sockfd, EPOLLOUT,m_TRIGmode);
                 return true;
             } 
             //如果发送失败  不是缓冲区问题 取消映射
@@ -633,7 +690,7 @@ bool http_conn::write()
         {
             unmap();
             //在epoll树上重置EPOLLONESHOT事件
-            modfd(m_epollfd, m_sockfd, EPOLLIN);
+            modfd(m_epollfd, m_sockfd, EPOLLIN,m_TRIGmode);
 
             //浏览器的请求为长连接
             if(m_linger)
@@ -645,5 +702,35 @@ bool http_conn::write()
             else
                 return false;
         }
+    }
+}
+
+//将数据库中的用户名和密码载入到服务器的map中来，map中的key为用户名，value为密码。
+void http_conn::initMySQL_result(connection_pool *connPool)
+{
+    MYSQL *mysql = NULL;
+    connectionRAII(&mysql, connPool);//从连接池获取一个连接
+
+    //在user表中检索username passwd数据，浏览器出入
+    if (mysql_query(mysql, "SELECT username,passwd FROM user"))
+    {
+        //error
+    }
+
+    //从表中检索完整的结果集
+    MYSQL_RES *result = mysql_store_result(mysql);
+
+    //返回结果集中的列数
+    int num_fileds = mysql_num_fields(result);
+
+    //返回所有字段结构的数组
+    MYSQL_FIELD *fileds = mysql_fetch_fields(result);
+
+    //从结果集中获取下一行，将对应的用户名和密码存入map中
+    while (MYSQL_ROW row = mysql_fetch_row(result))
+    {
+        string temp1(row[0]); //用户名
+        string temp2(row[1]); //密码
+        m_users[temp1] = temp2;
     }
 }

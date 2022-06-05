@@ -18,13 +18,13 @@ public:
         return &obj;
     }
 
-    //日志文件，缓冲区大小，最大行数，最长日志条队列
+    //初始化日志文件，缓冲区大小，最大行数，最长日志条队列
     bool init(const char *file_name, int log_buf_size = 8192, int max_lines = 5000000, int max_queue_size = 0);
 
     //异步写入日志公有方法 内部调用私用方法async_write_log(回调函数)
     static void *flush_log_thread(void *args)
     {
-        //类名+：：调用静态方法
+        //类名+::调用静态方法
         Log::get_instance()->async_write_log();
     }
 
@@ -58,17 +58,18 @@ private:
     }
 
 private:
-    char dir_name[128]; //路径名
-    char log_name[128]; // log文件名;
+    char m_dir_name[128]; //路径名
+    char m_log_name[128]; //log文件名;
     int m_max_lines;    //日志最大行数;
     int m_log_buf_size; //日志缓冲区大小;
     long long m_count;  //日志行数记录;
-    int m_date;        //记录当前时间是那一天;
+    int m_today;        //记录当前时间是那一天;
     FILE *m_fp;        //打开log的文件指针<stdio.h>;
     char *m_buf;       //要输出的内容;
     block_queue<string> *m_log_queue; //阻塞队列;
     bool m_is_async;                  //是否同步标志位;
     locker m_mutex;
+    int m_close_log; //关闭日志
 };
 
 #endif
