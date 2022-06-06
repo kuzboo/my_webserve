@@ -17,18 +17,15 @@ public:
         static Log obj;
         return &obj;
     }
-
     //初始化日志文件，缓冲区大小，最大行数，最长日志条队列
     bool init(const char *file_name, int log_buf_size = 8192, int max_lines = 5000000, int max_queue_size = 0);
-
     //异步写入日志公有方法 内部调用私用方法async_write_log(回调函数)
     static void *flush_log_thread(void *args)
     {
         //类名+::调用静态方法
         Log::get_instance()->async_write_log();
     }
-
-    //输出内容按照标准给是整理
+    //输出内容按照标准格式整理
     void write_log(int level, const char *format, ...);
     //强制刷新缓冲区
     void flush(void);
@@ -71,5 +68,10 @@ private:
     locker m_mutex;
     int m_close_log; //关闭日志
 };
+
+#define LOG_DEBUG(format, ...) Log::get_instance()->write_log(0, format, __VA_ARGS__)
+#define LOG_INFO(format, ...) Log::get_instance()->write_log(1, format, __VA_ARGS__)
+#define LOG_WARN(format, ...) Log::get_instance()->write_log(2, format, __VA_ARGS__)
+#define LOG_ERROR(format, ...) Log::get_instance()->write_log(3, format, __VA_ARGS__)
 
 #endif
