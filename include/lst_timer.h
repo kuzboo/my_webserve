@@ -69,7 +69,7 @@ public:
     Utils(){};
     ~Utils(){};
 
-    void init(int timeslot);
+    void init(int timeslot) { m_TIMESLOT = timeslot; }
     int setnonblocking(int fd);                                    //将文件描述符设置成非阻塞;
     static void sig_handler(int sig);                              //信号处理函数;
     void addsig(int sig, void(handler)(int), bool restart = true); //设置信号函数;

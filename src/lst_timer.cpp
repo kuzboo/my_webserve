@@ -2,6 +2,24 @@
 #include"../include/http_conn.h"
 using namespace std;
 
+void Utils::init(int timeslot) 
+{ 
+    m_TIMESLOT = timeslot; 
+}
+void Utils::addfd(int epollfd, int fd, bool one_shot, int TRIGMode)
+{
+    epoll_event event;
+    event.data.fd = fd;
+
+    if(1==TRIGMode)
+        event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+    else
+        event.events = EPOLLIN | EPOLLRDHUP;
+    if(one_shot)
+        event.events |= EPOLLONESHOT;
+    epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
+    setnonblocking(fd);
+}
 //自定义信号处理函数，创建sigaction结构体变量，设置信号函数。
 void Utils::sig_handler(int sig)
 {
@@ -28,8 +46,8 @@ void Utils::addsig(int sig,void(handler)(int),bool restart=true)
     if(restart)
         sa.sa_flags |= SA_RESTART;//使被信号打断的系统调用自动重新发起
     sigfillset(&sa.sa_mask);      //将所有信号添加到信号集中
-
-    assert(sigaction(sig, &sa, NULL) != -1);
+    int ret = sigaction(sig, &sa, NULL);
+    assert(ret != -1);
 }
 //定时事件
 void cb_func(client_data* user_data)

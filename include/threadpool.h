@@ -7,15 +7,16 @@
 #include<exception>
 #include<pthread.h>
 #include"locker.h"
+#include"connection_pool.h"
 
 template<typename T>
 class threadpool
 {
 public:
-    threadpool(int thread_number = 8, int max_requests = 10000);
+    threadpool(int actor_model,connection_pool *connPool, int thread_number = 8, int max_requests = 10000);
     ~threadpool();
 
-    bool append(T *request);
+    bool append(T *request,int state);
 private:
     static void *worker(void *arg);//静态成员函数 
     void run();
@@ -28,11 +29,13 @@ private:
     locker m_queuelocker;  //保护请求队列的互斥锁;
     sem m_queuestat;       //是否有任务需要处理;
     bool m_stop;           //是否结束线程
+    int m_actor_model;     //模型切换
+    connection_pool *m_connPool; //数据库
 };
 
 //线程池的创建与回收
 template <typename T>
-threadpool<T>::threadpool(int thread_number, int max_requests) : m_pthread_number(thread_number), m_max_requests(max_requests)
+threadpool<T>::threadpool(int actor_model,connection_pool *connPool, int thread_number, int max_requests) : m_pthread_number(thread_number), m_max_requests(max_requests)
 {
     if(thread_number<=0 || max_requests<=0)
     {
@@ -71,7 +74,7 @@ threadpool<T>::~threadpool()
 
 //向请求队列中添加任务
 template<typename T>
-bool threadpool<T>::append(T* request)
+bool threadpool<T>::append(T* request,int state)
 {
     m_queuelocker.lock();
     if(m_workqueue.size()>=m_max_requests)
@@ -80,6 +83,7 @@ bool threadpool<T>::append(T* request)
         cout << "请求队列已满" << endl;
         return false;
     }
+    request->m_state = state;   //【这个怎么不会报错呢】
     m_workqueue.push_back(request);
     m_queuelocker.unlock();
     //信号量提醒有任务要处理[信号量+1]
@@ -102,7 +106,7 @@ void* threadpool<T>::worker(void* arg)
 template<typename T>
 void threadpool<T>::run()
 {
-    while(!m_stop)
+    while(true)
     {
         m_queuestat.wait();//有任务需要处理 唤醒工作队列
         m_queuelocker.lock();//工作队列加锁
@@ -117,6 +121,42 @@ void threadpool<T>::run()
         m_queuelocker.unlock();
         if(!request)
             continue;
+        
+        //【？？？？？？？？？？？？？？】
+        if(1==m_actor_model)
+        {
+            if(0==request->m_state) //0代表读
+            {
+                if(request->read_once()) //如果有数据可读
+                {
+                    request->improv = 1;
+                    connectionRAII(&reques->mysql, m_connPool);
+                    request->process();
+                }
+                else
+                {
+                    request->improv = 1;
+                    request->timer_flag = 1;
+                }
+            }
+            else
+            {
+                if(request->write())
+                {
+                    request->improv = 1;
+                }
+                else
+                {
+                    request->improv = 1;
+                    request->timer_flag = 1;
+                }
+            }
+        }
+        else
+        {
+            connectionRAII mysqlcon(&request->mysql, m_connPool);
+            request->process();
+        }
     }
 }
 

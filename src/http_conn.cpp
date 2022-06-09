@@ -714,9 +714,9 @@ void http_conn::initMySQL_result(connection_pool *connPool)
     //在user表中检索username passwd数据，浏览器出入
     if (mysql_query(mysql, "SELECT username,passwd FROM user"))
     {
-        //error
+        LOG_ERROR("SELECT error:%s\n", mysql_error(mysql));
     }
-
+    
     //从表中检索完整的结果集
     MYSQL_RES *result = mysql_store_result(mysql);
 

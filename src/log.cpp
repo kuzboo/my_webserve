@@ -7,7 +7,7 @@
 服务器启动按当前时刻创建日志，前缀为时间，后缀为自定义log文件名
 并记录创建日志的时间day和行数count
 */
-bool Log::init(const char *file_name, int log_buf_size, int max_lines, int max_queue_size)
+bool Log::init(const char *file_name, int close_log,int log_buf_size, int max_lines, int max_queue_size)
 {
     //如果设置了max_queue_size则设置异步
     if(max_queue_size>=1)
