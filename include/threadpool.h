@@ -17,6 +17,8 @@ public:
     ~threadpool();
 
     bool append(T *request,int state);
+    bool append_p(T *request);//proactor模式用
+
 private:
     static void *worker(void *arg);//静态成员函数 
     void run();
@@ -87,6 +89,20 @@ bool threadpool<T>::append(T* request,int state)
     m_workqueue.push_back(request);
     m_queuelocker.unlock();
     //信号量提醒有任务要处理[信号量+1]
+    m_queuestat.post();
+    return true;
+}
+template<typename T>
+bool threadpool<T>::append_p(T* request)
+{
+    m_queuelocker.lock();
+    if(m_workqueue.size()>=m_max_requests)
+    {
+        m_queuelocker.unlock();
+        return false;
+    }
+    m_workqueue.push_back(request);
+    m_queuelocker.unlock();
     m_queuestat.post();
     return true;
 }

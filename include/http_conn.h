@@ -76,7 +76,7 @@ public:
     static int m_epollfd;    //
     static int m_user_count; //
     int timer_flag;
-    int improv;
+    int improv;//1代表该请求还未处理完毕
     int m_state;//读为0，写为1
     MYSQL *m_mysql;
 

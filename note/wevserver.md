@@ -18,3 +18,17 @@ void sql_pool()
 
 void thread_pool()
 new一个线程池对象
+
+void eventlisten()
+- 创建用于监听套接字文件描述符
+- 根据m_OPT_LINGER参数设置套接字的状态，通过SO_LINGER选项设置延迟关闭时间，具体的通过linger结构体和setsockopt()函数
+- 为套接字绑定IP地址和端口号，bind之前将套接字设置成SO_REUSEADDR状态，端口复用
+- 通过listen()设置内核监听队列最大长度
+- 为信号处理设置超时时间
+- epoll创建内核事件表，监听用于监听的套接字文件描述符的读事件
+- 通过setsockpair()创建全双工的管道套接字
+- 注册信号处理函数
+void timer(int connfd, struct sockaddr_in client_address)
+- 初始化连接，将connfd挂载到epoll上，监听读事件
+- 初始化client_data数据
+- 设置一个定时器，包括回调函数和超时时间，与客户数据绑定在一起，添加到定时器容器中

@@ -82,8 +82,9 @@ public:
 
 public:
     static int *u_pipefd; 
-    static int u_epollfd; 
+    static int u_epollfd;
+    sort_timer_list m_timer_lst;
     int m_TIMESLOT;
 };
-void cd_func(client_data *user_data); //定时事件删除非活动连接
+void cb_func(client_data *user_data); //定时事件删除非活动连接
 #endif

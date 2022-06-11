@@ -26,17 +26,22 @@ public:
     void thread_pool();
     void eventlisten();
     void timer(int connfd, struct sockaddr_in client_address);
+    void adjust_timer(util_timer *timer);
+    void deal_timer(util_timer *timer, int sockfd);
+    bool dealclientdata();
+    bool dealwithsignal(bool &timeout, bool &stop_server);
+    void dealwith_read(int sockfd);
 
 public:
     int m_port; //主机端口号
     char *m_root;//网站根目录
     int m_log_write; // 1代表异步写
     int m_close_log;
-    int m_actormodel;
+    int m_actormodel;//1代表reactor
 
     int m_pipefd[2];
     int m_epollfd;
-    http_conn *users; //要通过new分配内存所以是pointer
+    http_conn *users; //代表用户请求
 
     //数据库相关
     connection_pool *m_connPool;
