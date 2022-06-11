@@ -38,6 +38,6 @@ void timer(int connfd, struct sockaddr_in client_address)
 当stop_server=false 循环调用epoll_wait阻塞监听事件，如果返回值大于0，说明有事件发生，for循环遍历epoll数组中每一项的文件描述符和事件
 - 如果是listenfd，说明其上发生了读事件 有新连接发生，执行dealclientdata(),通过accept创建一个连接，然后为该连接启动一个定时器。
 - 如果发生的事件是EPOLLRDHUP | EPOLLHUP | EPOLLERR，则关闭连接删除定时器
-- 如果发生事件的文件描述符是管道读端而且事件是读事件，说明有信号触发，执行dealwithsignal(),这个函数有两个参数分别是timeout和stop_server，bool类型的引用，函数内部通过recv读取数据，如果收到的信号是SIGALRM，说明触发超时，令timeout=true，；如果信号时SIGTERM，则令stop_sever=true，关闭服务器。
+- 如果发生事件的文件描述符是管道读端而且事件是读事件，说明有信号触发，执行dealwithsignal(),这个函数有两个参数分别是timeout和stop_server，bool类型的引用，函数内部通过recv读取数据，如果收到的信号是SIGALRM，说明触发超时，令timeout=true，执行对应的信号处理函数；如果信号时SIGTERM，则令stop_sever=true，关闭服务器。
 - 如果事件是读事件，执行dealwith_read();
 - 如果事件是些事件，执行dealwiht_write();
