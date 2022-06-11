@@ -144,7 +144,7 @@ void WebServer::eventlisten()
     utils.setnonblocking(m_pipefd[1]); //写端非阻塞
     utils.addfd(m_epollfd, m_pipefd[0], false, 0);//监听管道读端读事件
 
-    utils.addsig(SIGPIPE, SIG_IGN);
+    utils.addsig(SIGPIPE, SIG_IGN); //SIG_IGN作用 忽略SIGPIPE信号，因为其会杀死进程
     utils.addsig(SIGALRM, utils.sig_handler, false);
     utils.addsig(SIGTERM, utils.sig_handler, false);
 
@@ -166,8 +166,7 @@ void WebServer::timer(int connfd, struct sockaddr_in client_address)
     timer->cb_func = cb_func;//回调函数[为什么不是静态]
 
     time_t cur = time(NULL);
-    timer->expire = cur + 3 * TIMESLOT;//超时时间？？？
-
+    timer->expire = cur + 3 * TIMESLOT;//超时时间
     users_timer[connfd].timer = timer;
     utils.m_timer_lst.add_timer(timer);
 }
@@ -239,7 +238,7 @@ bool WebServer::dealclientdata()
     return true;
 }
 
-//处理管道读端中的信号
+//处理管道读端中的信号 判断是否超时 是否停止服务
 bool WebServer::dealwithsignal(bool &timeout,bool &stop_server)
 {
     int ret = 0;
@@ -368,6 +367,7 @@ void WebServer::dealwith_write(int sockfd)
         }
     }
 }
+
 void WebServer::eventLoop()
 {
     bool timeout = false;
@@ -384,10 +384,10 @@ void WebServer::eventLoop()
 
         for (int i = 0; i < number;++i)
         {
-            int sockfd = events[i].data.fd;
+            int sockfd = events[i].data.fd; //events传出的是有事件发生的文件描述符
 
             //处理新的客户连接
-            if(sockfd==m_listenfd)
+            if(sockfd==m_listenfd)  //如果m_listenfd上有读时间  说明有新的连接
             {
                 bool flag = dealclientdata();
                 if(false==flag)

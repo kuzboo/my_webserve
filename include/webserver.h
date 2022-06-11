@@ -31,13 +31,15 @@ public:
     bool dealclientdata();
     bool dealwithsignal(bool &timeout, bool &stop_server);
     void dealwith_read(int sockfd);
+    void dealwith_write(int sockfd);
+    void eventLoop();
 
 public:
-    int m_port; //主机端口号
-    char *m_root;//网站根目录
-    int m_log_write; // 1代表异步写
-    int m_close_log;
-    int m_actormodel;//1代表reactor
+    int m_port;      //主机端口号
+    char *m_root;    //网站根目录
+    int m_log_write; //1代表异步写
+    int m_close_log; //日志开关
+    int m_actormodel; // 1代表reactor
 
     int m_pipefd[2];
     int m_epollfd;

@@ -13,6 +13,16 @@
 #include<string.h>
 #include<assert.h>
 
+class util_timer;//前向声明
+
+//连接资源结构体
+struct client_data
+{
+    sockaddr_in clnt_addr;//客户端地址
+    int sockfd;           //套接字文件描述符
+    util_timer *timer;    //定时器类
+};
+
 //定时器类
 class util_timer
 {
@@ -24,14 +34,6 @@ public:
     client_data *user_data;         //连接资源
     util_timer *prev;               //前向定时器
     util_timer *next;               //后向定时器
-};
-
-//连接资源结构体
-struct client_data
-{
-    sockaddr_in clnt_addr;//客户端地址
-    int sockfd;           //套接字文件描述符
-    util_timer *timer;    //定时器类
 };
 
 //定时器容器类

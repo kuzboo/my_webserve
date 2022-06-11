@@ -6,6 +6,7 @@ void Utils::init(int timeslot)
 { 
     m_TIMESLOT = timeslot; 
 }
+//将fd添加到epoll数组中，监听读事件
 void Utils::addfd(int epollfd, int fd, bool one_shot, int TRIGMode)
 {
     epoll_event event;
