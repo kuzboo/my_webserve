@@ -416,7 +416,7 @@ void WebServer::eventLoop()
                 dealwith_read(sockfd);
             }
             //处理客户写事件
-            else if(events[i].events & EPOLLOUT)
+            else if(events[i].events & EPOLLOUT) //什么时候注册的写事件呢
             {
                 dealwith_write(sockfd);
             }
