@@ -41,11 +41,11 @@ threadpool<T>::threadpool(int actor_model,connection_pool *connPool, int thread_
 {
     if(thread_number<=0 || max_requests<=0)
     {
-        throw exception();
+        throw runtime_error("线程池数量或者最大请求数必须大于0");
     }
     m_thread = new pthread_t[thread_number];
     if(!m_thread)
-        throw exception();
+        throw runtime_error("线程类型的数组分配内存失败");
 
     for (int i = 0; i < thread_number;++i)
     {
@@ -58,12 +58,12 @@ threadpool<T>::threadpool(int actor_model,connection_pool *connPool, int thread_
         if (pthread_create(m_thread + i, NULL, worker, this) != 0) //为什么传this
         {
             delete[] m_thread;
-            throw exception();
+            throw runtime_error("线程" + i + "创建失败");
         }
         if(pthread_detach(m_thread[i])) //分离主线程子线程 资源自动回收
         {
             delete[] m_thread;
-            throw exception();
+            throw runtime_error("线程" + i + "分离失败");
         }
     }
 }
@@ -82,7 +82,7 @@ bool threadpool<T>::append(T* request,int state)
     if(m_workqueue.size()>=m_max_requests)
     {
         m_queuelocker.unlock();
-        cout << "请求队列已满" << endl;
+        throw runtime_error("请求队列已满");
         return false;
     }
     request->m_state = state;   //【这个怎么不会报错呢】
