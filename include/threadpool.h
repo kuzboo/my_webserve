@@ -58,12 +58,12 @@ threadpool<T>::threadpool(int actor_model,connection_pool *connPool, int thread_
         if (pthread_create(m_thread + i, NULL, worker, this) != 0) //为什么传this
         {
             delete[] m_thread;
-            throw runtime_error("线程" + i + "创建失败");
+            throw runtime_error("线程创建失败");
         }
         if(pthread_detach(m_thread[i])) //分离主线程子线程 资源自动回收
         {
             delete[] m_thread;
-            throw runtime_error("线程" + i + "分离失败");
+            throw runtime_error("线程分离失败");
         }
     }
 }
@@ -146,7 +146,8 @@ void threadpool<T>::run()
                 if(request->read_once()) //如果有数据可读
                 {
                     request->improv = 1;
-                    connectionRAII(&reques->mysql, m_connPool);
+                    //connectionRAII(&request->mysql, m_connPool);
+                    connectionRAII mysqlcon(&request->m_mysql, m_connPool);
                     request->process();
                 }
                 else
@@ -170,7 +171,7 @@ void threadpool<T>::run()
         }
         else
         {
-            connectionRAII mysqlcon(&request->mysql, m_connPool);
+            connectionRAII mysqlcon(&request->m_mysql, m_connPool);
             request->process();
         }
     }

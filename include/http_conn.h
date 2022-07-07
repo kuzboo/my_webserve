@@ -106,7 +106,6 @@ private:
     sockaddr_in m_address;               //套接字地址
     char m_read_buf[READ_BUFFER_SIZE];   //存储读取的请求报文数据
     char m_write_buf[WRITE_BUFFER_SIZE]; //存储发出响应报文的数据
-    char m_real_file[FILENAME_LEN];      //读取文件的名称
     int m_read_idx;                      // m_read_buf中数据的最后一个字节的下一个位置
     int m_write_idx;                     //m_write_buf中最后一个字节的下一个位置
     int m_checked_idx;                   // m_read_buf中读取的位置
@@ -116,7 +115,7 @@ private:
     CHECK_STATE m_check_state;           //主状态机状态
 
     //请求报文中对应的变量
-    char m_real_file[FILENAME_LEN];//存储读取文件的名称
+    char m_real_file[FILENAME_LEN]; //存储读取文件的名称
     char *m_url;
     char *m_vesrion;
     char *m_host;
@@ -131,6 +130,7 @@ private:
     char *m_file_address;    //读取服务器上文件地址
     int bytes_to_send;       //剩余发送字节数
     int bytes_have_send;     //已发送字节数
+    char *doc_root;
 
     map<string, string> m_users; //用户名和密码
     int m_TRIGmode;              // epoll触发模式

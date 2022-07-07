@@ -5,7 +5,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
-#include"../include/locker.h"
+#include"locker.h"
 using namespace std;
 
 template<class T>
@@ -105,7 +105,7 @@ public:
     */
     bool push(const T &item)
     {
-        m_mutex.lock()
+        m_mutex.lock();
 
         if (m_size >= m_max_size)
         {

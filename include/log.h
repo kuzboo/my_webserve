@@ -4,7 +4,7 @@
 #include<stdio.h>
 #include<pthread.h>
 #include<string>
-#include"../include/block_queue.h"
+#include"block_queue.h"
 
 using namespace std;
 

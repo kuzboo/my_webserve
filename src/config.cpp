@@ -1,6 +1,6 @@
 #include"../include/config.h"
 
-config::config()
+Config::Config()
 {
     PORT = 9006;
     LOGWrite = 0;//默认同步
@@ -13,7 +13,7 @@ config::config()
     CLOSELOG = 0;
     ACTORMODE = 0;
 }
-void config::parse_arg(int argc, char *argv[])
+void Config::parse_arg(int argc, char *argv[])
 {
     int opt;
     const char *str = "p:l:m:o:s:t:c:a";

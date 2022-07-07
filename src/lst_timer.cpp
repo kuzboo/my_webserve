@@ -36,7 +36,8 @@ void Utils::sig_handler(int sig)
     errno = save_errno;
 }
 //注册信号函数(内部调用sigaction)
-void Utils::addsig(int sig,void(handler)(int),bool restart=true)
+//void Utils::addsig(int sig,void(handler)(int),bool restart=true)
+void Utils::addsig(int sig,void(handler)(int),bool restart)
 {
     //创建并初始化结构体变量
     struct sigaction sa;

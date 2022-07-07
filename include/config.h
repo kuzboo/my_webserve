@@ -1,16 +1,16 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include"../include/webserver.h"
+#include"webserver.h"
 using namespace std;
 
-class config
+class Config
 {
 private:
     /* data */
 public:
-    config(/* args */);
-    ~config();
+    Config(/* args */);
+    ~Config();
 
     void parse_arg(int argc, char *argv[]);
     int PORT;
