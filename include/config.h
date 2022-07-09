@@ -6,11 +6,9 @@ using namespace std;
 
 class Config
 {
-private:
-    /* data */
 public:
-    Config(/* args */);
-    ~Config();
+    Config();
+    ~Config(){};
 
     void parse_arg(int argc, char *argv[]);
     int PORT;

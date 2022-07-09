@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/server.dir/main.cpp.o"
-  "CMakeFiles/server.dir/src/wevserver.cpp.o"
   "CMakeFiles/server.dir/src/log.cpp.o"
+  "CMakeFiles/server.dir/src/webserver.cpp.o"
   "CMakeFiles/server.dir/src/lst_timer.cpp.o"
   "CMakeFiles/server.dir/src/http_conn.cpp.o"
   "CMakeFiles/server.dir/src/connection_pool.cpp.o"

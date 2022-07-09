@@ -81,33 +81,9 @@ CMakeFiles/server.dir/main.cpp.o.provides: CMakeFiles/server.dir/main.cpp.o.requ
 CMakeFiles/server.dir/main.cpp.o.provides.build: CMakeFiles/server.dir/main.cpp.o
 
 
-CMakeFiles/server.dir/src/wevserver.cpp.o: CMakeFiles/server.dir/flags.make
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../src/wevserver.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yhb/test/my_webServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/server.dir/src/wevserver.cpp.o"
-	/usr/bin/g++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/server.dir/src/wevserver.cpp.o -c /home/yhb/test/my_webServer/src/wevserver.cpp
-
-CMakeFiles/server.dir/src/wevserver.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/server.dir/src/wevserver.cpp.i"
-	/usr/bin/g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yhb/test/my_webServer/src/wevserver.cpp > CMakeFiles/server.dir/src/wevserver.cpp.i
-
-CMakeFiles/server.dir/src/wevserver.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/server.dir/src/wevserver.cpp.s"
-	/usr/bin/g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yhb/test/my_webServer/src/wevserver.cpp -o CMakeFiles/server.dir/src/wevserver.cpp.s
-
-CMakeFiles/server.dir/src/wevserver.cpp.o.requires:
-
-.PHONY : CMakeFiles/server.dir/src/wevserver.cpp.o.requires
-
-CMakeFiles/server.dir/src/wevserver.cpp.o.provides: CMakeFiles/server.dir/src/wevserver.cpp.o.requires
-	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/wevserver.cpp.o.provides.build
-.PHONY : CMakeFiles/server.dir/src/wevserver.cpp.o.provides
-
-CMakeFiles/server.dir/src/wevserver.cpp.o.provides.build: CMakeFiles/server.dir/src/wevserver.cpp.o
-
-
 CMakeFiles/server.dir/src/log.cpp.o: CMakeFiles/server.dir/flags.make
 CMakeFiles/server.dir/src/log.cpp.o: ../src/log.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yhb/test/my_webServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/server.dir/src/log.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yhb/test/my_webServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/server.dir/src/log.cpp.o"
 	/usr/bin/g++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/server.dir/src/log.cpp.o -c /home/yhb/test/my_webServer/src/log.cpp
 
 CMakeFiles/server.dir/src/log.cpp.i: cmake_force
@@ -127,6 +103,30 @@ CMakeFiles/server.dir/src/log.cpp.o.provides: CMakeFiles/server.dir/src/log.cpp.
 .PHONY : CMakeFiles/server.dir/src/log.cpp.o.provides
 
 CMakeFiles/server.dir/src/log.cpp.o.provides.build: CMakeFiles/server.dir/src/log.cpp.o
+
+
+CMakeFiles/server.dir/src/webserver.cpp.o: CMakeFiles/server.dir/flags.make
+CMakeFiles/server.dir/src/webserver.cpp.o: ../src/webserver.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/yhb/test/my_webServer/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/server.dir/src/webserver.cpp.o"
+	/usr/bin/g++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/server.dir/src/webserver.cpp.o -c /home/yhb/test/my_webServer/src/webserver.cpp
+
+CMakeFiles/server.dir/src/webserver.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/server.dir/src/webserver.cpp.i"
+	/usr/bin/g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/yhb/test/my_webServer/src/webserver.cpp > CMakeFiles/server.dir/src/webserver.cpp.i
+
+CMakeFiles/server.dir/src/webserver.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/server.dir/src/webserver.cpp.s"
+	/usr/bin/g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/yhb/test/my_webServer/src/webserver.cpp -o CMakeFiles/server.dir/src/webserver.cpp.s
+
+CMakeFiles/server.dir/src/webserver.cpp.o.requires:
+
+.PHONY : CMakeFiles/server.dir/src/webserver.cpp.o.requires
+
+CMakeFiles/server.dir/src/webserver.cpp.o.provides: CMakeFiles/server.dir/src/webserver.cpp.o.requires
+	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/webserver.cpp.o.provides.build
+.PHONY : CMakeFiles/server.dir/src/webserver.cpp.o.provides
+
+CMakeFiles/server.dir/src/webserver.cpp.o.provides.build: CMakeFiles/server.dir/src/webserver.cpp.o
 
 
 CMakeFiles/server.dir/src/lst_timer.cpp.o: CMakeFiles/server.dir/flags.make
@@ -228,8 +228,8 @@ CMakeFiles/server.dir/src/config.cpp.o.provides.build: CMakeFiles/server.dir/src
 # Object files for target server
 server_OBJECTS = \
 "CMakeFiles/server.dir/main.cpp.o" \
-"CMakeFiles/server.dir/src/wevserver.cpp.o" \
 "CMakeFiles/server.dir/src/log.cpp.o" \
+"CMakeFiles/server.dir/src/webserver.cpp.o" \
 "CMakeFiles/server.dir/src/lst_timer.cpp.o" \
 "CMakeFiles/server.dir/src/http_conn.cpp.o" \
 "CMakeFiles/server.dir/src/connection_pool.cpp.o" \
@@ -239,8 +239,8 @@ server_OBJECTS = \
 server_EXTERNAL_OBJECTS =
 
 server: CMakeFiles/server.dir/main.cpp.o
-server: CMakeFiles/server.dir/src/wevserver.cpp.o
 server: CMakeFiles/server.dir/src/log.cpp.o
+server: CMakeFiles/server.dir/src/webserver.cpp.o
 server: CMakeFiles/server.dir/src/lst_timer.cpp.o
 server: CMakeFiles/server.dir/src/http_conn.cpp.o
 server: CMakeFiles/server.dir/src/connection_pool.cpp.o
@@ -256,8 +256,8 @@ CMakeFiles/server.dir/build: server
 .PHONY : CMakeFiles/server.dir/build
 
 CMakeFiles/server.dir/requires: CMakeFiles/server.dir/main.cpp.o.requires
-CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/wevserver.cpp.o.requires
 CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/log.cpp.o.requires
+CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/webserver.cpp.o.requires
 CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/lst_timer.cpp.o.requires
 CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/http_conn.cpp.o.requires
 CMakeFiles/server.dir/requires: CMakeFiles/server.dir/src/connection_pool.cpp.o.requires

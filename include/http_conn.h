@@ -61,8 +61,8 @@ public:
     };                     //报文解析的结果
 
 public:
-    http_conn();
-    ~http_conn();
+    http_conn(){};
+    ~http_conn(){};
     //初始化套接字地址，函数内部会调用私有方法init
     void init(int sockfd, const struct sockaddr_in &addr, char *, int, int,
               string user, string password, string sqlname);

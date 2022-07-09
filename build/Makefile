@@ -285,32 +285,32 @@ src/lst_timer.cpp.s:
 	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/lst_timer.cpp.s
 .PHONY : src/lst_timer.cpp.s
 
-src/wevserver.o: src/wevserver.cpp.o
+src/webserver.o: src/webserver.cpp.o
 
-.PHONY : src/wevserver.o
+.PHONY : src/webserver.o
 
 # target to build an object file
-src/wevserver.cpp.o:
-	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/wevserver.cpp.o
-.PHONY : src/wevserver.cpp.o
+src/webserver.cpp.o:
+	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/webserver.cpp.o
+.PHONY : src/webserver.cpp.o
 
-src/wevserver.i: src/wevserver.cpp.i
+src/webserver.i: src/webserver.cpp.i
 
-.PHONY : src/wevserver.i
+.PHONY : src/webserver.i
 
 # target to preprocess a source file
-src/wevserver.cpp.i:
-	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/wevserver.cpp.i
-.PHONY : src/wevserver.cpp.i
+src/webserver.cpp.i:
+	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/webserver.cpp.i
+.PHONY : src/webserver.cpp.i
 
-src/wevserver.s: src/wevserver.cpp.s
+src/webserver.s: src/webserver.cpp.s
 
-.PHONY : src/wevserver.s
+.PHONY : src/webserver.s
 
 # target to generate assembly for a file
-src/wevserver.cpp.s:
-	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/wevserver.cpp.s
-.PHONY : src/wevserver.cpp.s
+src/webserver.cpp.s:
+	$(MAKE) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/src/webserver.cpp.s
+.PHONY : src/webserver.cpp.s
 
 # Help Target
 help:
@@ -339,9 +339,9 @@ help:
 	@echo "... src/lst_timer.o"
 	@echo "... src/lst_timer.i"
 	@echo "... src/lst_timer.s"
-	@echo "... src/wevserver.o"
-	@echo "... src/wevserver.i"
-	@echo "... src/wevserver.s"
+	@echo "... src/webserver.o"
+	@echo "... src/webserver.i"
+	@echo "... src/webserver.s"
 .PHONY : help
 
 

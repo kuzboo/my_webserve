@@ -1,0 +1,37 @@
+[
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/main.cpp.o -c /home/yhb/test/my_webServer/main.cpp",
+  "file": "/home/yhb/test/my_webServer/main.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/log.cpp.o -c /home/yhb/test/my_webServer/src/log.cpp",
+  "file": "/home/yhb/test/my_webServer/src/log.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/webserver.cpp.o -c /home/yhb/test/my_webServer/src/webserver.cpp",
+  "file": "/home/yhb/test/my_webServer/src/webserver.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/lst_timer.cpp.o -c /home/yhb/test/my_webServer/src/lst_timer.cpp",
+  "file": "/home/yhb/test/my_webServer/src/lst_timer.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/http_conn.cpp.o -c /home/yhb/test/my_webServer/src/http_conn.cpp",
+  "file": "/home/yhb/test/my_webServer/src/http_conn.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/connection_pool.cpp.o -c /home/yhb/test/my_webServer/src/connection_pool.cpp",
+  "file": "/home/yhb/test/my_webServer/src/connection_pool.cpp"
+},
+{
+  "directory": "/home/yhb/test/my_webServer/build",
+  "command": "/usr/bin/g++     -g   -o CMakeFiles/server.dir/src/config.cpp.o -c /home/yhb/test/my_webServer/src/config.cpp",
+  "file": "/home/yhb/test/my_webServer/src/config.cpp"
+}
+]

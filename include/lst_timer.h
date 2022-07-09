@@ -1,5 +1,5 @@
-#ifndef LST_TIMER
-#define LST_TIMER
+#ifndef LST_TIMER_H
+#define LST_TIMER_H
 
 #include<unistd.h>
 #include<signal.h>

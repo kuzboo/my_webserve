@@ -48,13 +48,13 @@ CMakeFiles/server.dir/src/lst_timer.cpp.o: ../include/log.h
 CMakeFiles/server.dir/src/lst_timer.cpp.o: ../include/lst_timer.h
 CMakeFiles/server.dir/src/lst_timer.cpp.o: ../src/lst_timer.cpp
 
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/block_queue.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/connection_pool.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/http_conn.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/locker.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/log.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/lst_timer.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/threadpool.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../include/webserver.h
-CMakeFiles/server.dir/src/wevserver.cpp.o: ../src/wevserver.cpp
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/block_queue.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/connection_pool.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/http_conn.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/locker.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/log.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/lst_timer.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/threadpool.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../include/webserver.h
+CMakeFiles/server.dir/src/webserver.cpp.o: ../src/webserver.cpp
 

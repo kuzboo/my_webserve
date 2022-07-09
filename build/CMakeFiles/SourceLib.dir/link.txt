@@ -1,0 +1,2 @@
+/usr/bin/ar qc libSourceLib.a  CMakeFiles/SourceLib.dir/main.cpp.o
+/usr/bin/ranlib libSourceLib.a

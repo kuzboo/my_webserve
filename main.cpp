@@ -1,6 +1,5 @@
 #include<string>
-
-#include"config.h"
+#include"include/config.h"
 
 using namespace std;
 

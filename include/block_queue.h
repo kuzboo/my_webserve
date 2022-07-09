@@ -1,5 +1,5 @@
-#ifndef BLOCK_QUEUE
-#define BLOCK_QUEUE
+#ifndef BLOCK_QUEUE_H
+#define BLOCK_QUEUE_H
 
 #include<iostream>
 #include<stdio.h>

@@ -2,6 +2,17 @@
 #include"../include/http_conn.h"
 using namespace std;
 
+int *Utils::u_pipefd = 0;
+int Utils::u_epollfd = 0;
+
+int Utils::setnonblocking(int fd)
+{
+    int old_option = fcntl(fd, F_GETFL);
+    int new_option = old_option | O_NONBLOCK;
+    fcntl(fd, F_SETFL, new_option);
+    return old_option;
+}
+
 void Utils::init(int timeslot) 
 { 
     m_TIMESLOT = timeslot; 
@@ -51,6 +62,20 @@ void Utils::addsig(int sig,void(handler)(int),bool restart)
     int ret = sigaction(sig, &sa, NULL);
     assert(ret != -1);
 }
+
+//定时处理任务 重新定时以不断出发SIGALRM信号
+void Utils::timer_handler()
+{
+    m_timer_lst.tick();
+    alarm(m_TIMESLOT);
+}
+
+void Utils::show_error(int connfd,const char *info)
+{
+    send(connfd, info, strlen(info), 0);
+    close(connfd);
+}
+
 //定时事件
 void cb_func(client_data* user_data)
 {
@@ -63,6 +88,27 @@ void cb_func(client_data* user_data)
 }
 
 /*定时器容器类*/
+
+//添加定时器内部调用私有的add_timer
+void sort_timer_list::add_timer(util_timer *timer)
+{
+    if(!timer)
+        return;
+    if(!head)
+    {
+        head = timer;
+        tail = timer;
+        return;
+    }
+    if(timer->expire<head->expire)
+    {
+        timer->next = head;
+        head->prev = timer;
+        head = timer;
+        return;
+    }
+    add_timer(timer, head);
+}
 
 //添加定时器
 void sort_timer_list::add_timer(util_timer*timer,util_timer*lst_head)
