@@ -138,7 +138,9 @@ void threadpool<T>::run()
         if(!request)
             continue;
 
-        //1代表reactor
+        cout << "线程："<<*request<< "开始处理任务" << endl;
+
+        // 1代表reactor
         if(1==m_actor_model)
         {
             if(0==request->m_state) //0代表读

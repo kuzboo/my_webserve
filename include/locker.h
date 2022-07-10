@@ -18,7 +18,7 @@ public:
     }
     sem(int num)//初始化一个初值为num的信号量
     {
-        if(sem_init(&m_sem,0,num)!=0)
+        if(sem_init(&m_sem,0,num)!=0) 
             throw exception();
     }
     ~sem()//销毁信号量
