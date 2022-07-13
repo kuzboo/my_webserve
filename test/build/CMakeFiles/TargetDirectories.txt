@@ -1,3 +1,0 @@
-/home/yhb/test/my_webServer/test/build/CMakeFiles/edit_cache.dir
-/home/yhb/test/my_webServer/test/build/CMakeFiles/rebuild_cache.dir
-/home/yhb/test/my_webServer/test/build/CMakeFiles/testmysql.dir

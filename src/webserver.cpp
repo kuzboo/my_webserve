@@ -163,6 +163,7 @@ void WebServer::timer(int connfd, struct sockaddr_in client_address)
     users_timer[connfd].clnt_addr = client_address;
     users_timer[connfd].sockfd = connfd;
     util_timer *timer = new util_timer;
+    timer->user_data = &users_timer[connfd];
     timer->cb_func = cb_func;//回调函数[为什么不是静态]
 
     time_t cur = time(NULL);
@@ -259,16 +260,16 @@ bool WebServer::dealwithsignal(bool &timeout,bool &stop_server)
         {
             switch(signals[i])
             {
-                case SIGALRM:
-                {
-                    timeout = true;
-                    break;
-                }
-                case SIGTERM:
-                {
-                    stop_server = true;
-                    break;
-                }
+            case SIGALRM:
+            {
+                timeout = true;
+                break;
+            }
+            case SIGTERM:
+            {
+                stop_server = true;
+                break;
+            }
             }
         }
     }

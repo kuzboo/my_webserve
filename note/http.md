@@ -42,8 +42,8 @@ process_read函数的返回值是对请求的文件分析后的结果，一部�
   - 从状态机转移到LINE_OK，该条件涉及解析请求行和请求头部
   - 两者为或关系，当条件为真则继续循环，否则退出
 
-  - 为什么要写成
-  `while((m_check_state==CHECK_STATE_CONTENT && line_status==LINE_OK)||((line_status=parse_line())==LINE_OK))`
+  - **为什么要写成
+  `while((m_check_state==CHECK_STATE_CONTENT && line_status==LINE_OK)||((line_status=parse_line())==LINE_OK))`**
     在GET请求报文中，每一行都是\r\n作为结束，所以对报文进行拆解时，仅用从状态机的状态
     `line_status=parse_line()==LINE_OK`语句即可。但，在POST请求报文中，消息体的末尾
     没有任何字符，所以不能使用从状态机的状态，这里转而使用主状态机的状态作为循环入口条件。

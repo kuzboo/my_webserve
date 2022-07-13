@@ -22,6 +22,6 @@ int main(int argc, char *argv[])
     server.trig_mode();
     server.eventlisten();
     server.eventLoop();
-
+    
     return 0;
 }

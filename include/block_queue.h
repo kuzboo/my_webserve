@@ -66,6 +66,19 @@ public:
         return false;
     }
 
+    bool front(T &value) 
+    {
+        m_mutex.lock();
+        if (0 == m_size)
+        {
+            m_mutex.unlock();
+            return false;
+        }
+        value = m_array[m_front];
+        m_mutex.unlock();
+        return true;
+    }
+
     bool back(T &value)
     {
         m_mutex.lock();
@@ -82,7 +95,6 @@ public:
     int size()
     {
         int tmp = 0;
-
         m_mutex.lock();
         tmp = m_size;
         m_mutex.unlock();
@@ -91,10 +103,8 @@ public:
     int max_size()
     {
         int tmp = 0;
-
         m_mutex.lock();
         tmp = m_max_size;
-
         m_mutex.unlock();
         return tmp;
     }
@@ -146,7 +156,6 @@ public:
 private: 
     locker m_mutex;
     cond m_cond;
-
     T *m_array;
     int m_size;
     int m_max_size;

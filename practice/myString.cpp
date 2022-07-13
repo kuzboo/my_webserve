@@ -6,4 +6,4 @@ public:
 
 private:
     char *m_data;
-}
+};

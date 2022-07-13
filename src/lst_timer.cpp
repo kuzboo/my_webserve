@@ -54,10 +54,11 @@ void Utils::addsig(int sig,void(handler)(int),bool restart)
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));//初始化为空字符
 
-    //信号处理函数紧紧发送信号值 不做对应逻辑处理
+    //信号处理函数仅仅发送信号值 不做对应逻辑处理
     sa.sa_handler = handler;
     if(restart)
         sa.sa_flags |= SA_RESTART;//使被信号打断的系统调用自动重新发起
+    //sigemptyset(&sa.sa_mask)
     sigfillset(&sa.sa_mask);      //将所有信号添加到信号集中
     int ret = sigaction(sig, &sa, NULL);
     assert(ret != -1);
@@ -126,7 +127,7 @@ void sort_timer_list::add_timer(util_timer*timer,util_timer*lst_head)
             tmp->prev = timer;
             timer->prev = prev_node;
             break;
-            }
+        }
         prev_node = tmp;
         tmp = tmp->next;
     }

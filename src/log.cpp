@@ -21,11 +21,10 @@ bool Log::init(const char *file_name, int close_log,int log_buf_size, int max_li
         //创建一个线程异步写日志
         pthread_create(&tid, NULL, flush_log_thread, NULL);
     }
-    //输出内容的长度
-    m_log_buf_size = log_buf_size;
+    
+    m_log_buf_size = log_buf_size;//输出内容的长度
     m_buf = new char[m_log_buf_size];
     memset(m_buf, '\0', sizeof(m_buf));
-
     m_max_lines = max_lines;
 
     //获取当前时间
@@ -40,7 +39,7 @@ bool Log::init(const char *file_name, int close_log,int log_buf_size, int max_li
     //若输入的文件名没有'/'，则直接将时间+文件名作为日志名
     if (p == NULL)
     {
-        snprintf(log_full_name, 255, "%s%d_%02d_%02d_%s", m_dir_name, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday, m_log_name);
+        snprintf(log_full_name, 255, "%s%d_%02d_%02d_%s", m_dir_name, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday, file_name);
     }
     //若输入的文件名有'/'
     else
@@ -49,6 +48,7 @@ bool Log::init(const char *file_name, int close_log,int log_buf_size, int max_li
         strncpy(m_dir_name, file_name, p - file_name + 1);
         snprintf(log_full_name, 255, "%s%d_%02d_%02d_%s", m_dir_name, my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday, m_log_name);
     }
+
     m_today = my_tm.tm_mday;
 
     m_fp = fopen(log_full_name, "a");
@@ -88,6 +88,7 @@ void Log::write_log(int level, const char *format, ...)
         break;
     }
 
+    //写入一个log，对m_count++, m_split_lines最大行数
     m_mutex.lock();
 
     m_count++; //更新现有行数
@@ -139,7 +140,7 @@ void Log::write_log(int level, const char *format, ...)
 
     m_mutex.unlock();
 
-    //若异步 则将日志信息加入阻塞队列 同步加锁向文件也如
+    //若异步 则将日志信息加入阻塞队列 同步加锁向文件写入
     if(m_is_async && !m_log_queue->full())
         m_log_queue->push(log_str);
     else
