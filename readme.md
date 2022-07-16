@@ -1,9 +1,6 @@
 ## include 头文件 
 ## src 源文件 
 ## note 笔记
-## test 测试cmake
-## practice 常见问题的源代码练习
-
 
 ## http模块
 浏览器端发送http连接请求，服务端主线程创建http对象接收请求，并将所有数据一次性读入对应buffer，
