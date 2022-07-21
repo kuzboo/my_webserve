@@ -2,6 +2,15 @@
 ## src 源文件 
 ## note 笔记
 
+## 执行流程
+- 调用eventlisten()函数，创建listenfd用于监听，绑定IP地址和端口号，然后监听。接下来，通过epoll创建内核事件表，把listenfd挂在到epoll上并监听他的读事件。然后创建管道套接字挂载到epoll上监听读事件。最后设置好信号处理函数，启动定时器
+- 调用eventloop()函数，while(for())结构，for循环遍历epoll_wait()返回的事件表，事件类型有：新的客户连接、处理客户的读事件、处理客户写事件、处理对端关闭连接、处理信号(管道的读事件)。
+  - 处理新的客户连接，如果返回的是listenfd，则调用dealclientdata()方法，具体的调用accept创建一个用于连接的socketfd，然后为该连接启动一个定时器
+  - 处理客户的读事件，如果返回的事件是EPOLLIN，调用dealwith_read()方法，具体的调用read_once一次性的读取缓冲区数据，然后插入到请求队列中，唤醒一个睡眠在队列上的工作线程
+  - 处理写事件，如果返回的事件是EPOLLOUT，调用dealwith_write()，具体的调用http类的write()方法向客户端发送数据**主线程 如果是reactor模式，会调用子线程写数据**
+  - 对端关闭连接，调用deal_timer,如果返回的事件类型是EPOLLRDHUP | EPOLLHUP | EPOLLERR(读关闭、读写都关闭、发送错误)，则删除对应套接字的计时器，并关闭该连接
+  - 处理信号，如果返回的是管道的套接字，调用dealwithsignal()，删除不活跃连接。
+
 ## http模块
 浏览器端发送http连接请求，服务端主线程创建http对象接收请求，并将所有数据一次性读入对应buffer，
 将该对象插入到任务队列，然后工作线程从队列中取出一个任务进行处理。各个子线程调用process()
@@ -12,7 +21,7 @@ while (m_check_state == CHECK_STATE_CONTENT && line_state == LINE_OK
                               || (line_state = parse_line()) == LINE_OK)
 状态机循环入口
 从状态机负责读取报文的一行，主状态机负责对该行数据进行解析
-具体的，初始化主状态机为CHECK_STATE_REQUESTLINE，从状态机为LINE_OK，次状态调用解析请求头函数，如果获得完整一行，则主状态机转为CHECK_STATE_HEADER，调用解析请求头函数，通过判断内容字段是否为0，如果为0表示get请求，解析结果为GET_REQUEST，状态机结束；如果不为0为post请求，主状态机转到CHECK_STATE_CONTENT，调用解析消息体函数，完了之后从状态机状态要为LINE_OPEN防止再次进入循环。
+具体的，初始化主状态机为CHECK_STATE_REQUESTLINE，从状态机为LINE_OK，从状态调用解析请求头函数，如果获得完整一行，则主状态机转为CHECK_STATE_HEADER，调用解析请求头函数，通过判断内容字段是否为0，如果为0表示get请求，解析结果为GET_REQUEST，状态机结束；如果不为0为post请求，主状态机转到CHECK_STATE_CONTENT，调用解析消息体函数，完了之后从状态机状态要为LINE_OPEN防止再次进入循环。
 
 process_write()
 根据process_read对请求报文的解析结果，产生对应的响应报文(包括状态行消息头消息体)
@@ -26,7 +35,7 @@ process_write()
 15s超时时间
 
 ## 日志模块
-同步日志：日志写入模块会与工作线程串行执行，由于涉及到I/O操作，当单挑日志较大的时候，同步模式会阻塞整个处理流程，服务器所能处理的并发能力将下降。
+同步日志：日志写入模块会与工作线程串行执行，由于涉及到I/O操作，当单条日志较大的时候，同步模式会阻塞整个处理流程，服务器所能处理的并发能力将下降。
 异步日志：将所写的日志内容先存入阻塞队列，创建一个写线程，从阻塞队列取出内容写入日志文件。
 阻塞队列：将生产者-消费者模型进行封装，使用循环数组实现队列，作为两者共享的缓冲区。主要实现两个API，push和pop。push封装生产者，用广播的方式唤醒所有消费者；pop封装消费者.
 

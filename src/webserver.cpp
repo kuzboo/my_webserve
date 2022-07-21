@@ -332,6 +332,7 @@ void WebServer::dealwith_write(int sockfd)
     //reactor
     if(1==m_actormodel)
     {
+        //如果有事件发生 调整定时器
         if(timer)
         {
             adjust_timer(timer);
@@ -352,6 +353,7 @@ void WebServer::dealwith_write(int sockfd)
             }
         }
     }
+    //proactor
     else
     {
         if(users[sockfd].write())
