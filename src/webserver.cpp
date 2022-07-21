@@ -398,9 +398,10 @@ void WebServer::eventLoop()
                     continue;
                 }
             }
-            //服务器关闭连接，移除对应的定时器
+            //读关闭、写关闭、发生错误，删除对应计时器关闭连接
             else if (events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR))
             {
+                
                 util_timer *timer = users_timer[sockfd].timer;
                 deal_timer(timer, sockfd);
             }
